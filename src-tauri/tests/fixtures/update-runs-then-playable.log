@@ -1,0 +1,22 @@
+I 2026-10-09 01:28:31.511343 [Main] {Main} Command line arguments: {[0]=--from-launcher}
+D 2026-10-09 01:28:34.092504 [ProductState] {Main} InstallState (prometheus): currentOperation=Update currentOperationStatus=Paused installed=1 optionalPackageInstalled=1 hasInstallModificationOptions=1 installPath=C:/Games/Overwatch sharedContainerSubpath=_retail_ canCreateShortcut=1 selectedRegion=eu activeConfigKey=00000000000000000000000000000000 regionalVersions=(cn: {playable:false config_key:00000000000000000000000000000000}, eu: {playable:false config_key:00000000000000000000000000000000}, kr: {playable:false config_key:00000000000000000000000000000000}, nexon: {playable:false config_key:00000000000000000000000000000000}, us: {playable:false config_key:00000000000000000000000000000000}) repairSupported=true localVersion=2.25.0.0.154088 latestVersion=154088 progress=0.0120711
+I 2026-10-09 01:28:36.666355 [Frontend] {Main} Attempting to show main window. isMinimizedOnStartup=false <masked>=false varAutoStarted=false hasBattlePlatformProductCode=false needToMinimize=false hasActiveXboxConnection=false varLaunchedByXbox=false isExpectingLogin=false wasMainWindowInTray=false
+I 2026-10-09 01:28:36.788847 [BNLogin] {Main} Logged into Battle.net successfully. |bnet=1:0:aaaa0001|game=2:0:00000000
+D 2026-10-09 01:28:42.626555 [InstallInfo] {Main} Operation status changed: opType=Update oldStatus=Off newStatus=On agentUid=prometheus
+D 2026-10-09 01:28:42.626911 [ProductState] {Main} InstallState (prometheus): currentOperationStatus=Waiting
+D 2026-10-09 01:28:43.255658 [ProductState] {Main} InstallState (prometheus): currentOperationStatus=Initializing downloadRemainingExists=1 playableProgress=0.0120711
+D 2026-10-09 01:28:43.755510 [ProductState] {Main} InstallState (prometheus):
+D 2026-10-09 01:28:44.255515 [ProductState] {Main} InstallState (prometheus):
+D 2026-10-09 01:28:47.835740 [ProductState] {Main} InstallState (prometheus): currentOperationStatus=Running bytesToDownload=4123626249 updatesToApplySize=4123626249 downloadRemaining=4123626249 progress=0.0121849 playableProgress=0.0121849 thresholds=(1,1,1)
+D 2026-10-09 01:34:54.245324 [ProductState] {Main} InstallState (prometheus): currentOperationStatus=Finalizing bytesToDownload=0 updatesToApplySize=0 downloadRate=0 downloadRemaining=0 progress=1 playableProgress=1 estimatedTimeSeconds=0 writeRateBytesPerSecond=0
+D 2026-10-09 01:34:54.246003 [ProductState] {Main} InstallState (prometheus): playable=1 regionalVersions=(cn: {playable:false config_key:00000000000000000000000000000000}, eu: {playable:true config_key:00000000000000000000000000000000}, kr: {playable:true config_key:00000000000000000000000000000000}, nexon: {playable:false config_key:00000000000000000000000000000000}, us: {playable:true config_key:00000000000000000000000000000000}) currentStage=Complete
+D 2026-10-09 01:35:03.765679 [ProductState] {Main} InstallState (prometheus): currentOperationStatus=Waiting writeRateBytesPerSecond=0 thresholds=() currentStage=Setup
+D 2026-10-09 01:35:03.766186 [ProductState] {Main} InstallState (prometheus): currentStage=Complete
+D 2026-10-09 01:35:03.766714 [InstallInfo] {Main} Operation status changed: opType=Update oldStatus=On newStatus=Off agentUid=prometheus
+D 2026-10-09 01:35:03.766740 [ProductState] {Main} InstallState (prometheus): currentOperation=UpToDate currentOperationStatus=Paused
+I 2026-10-09 01:35:16.231522 [GameLaunchController] {Main} Game launch sequence canceled
+I 2026-10-09 01:35:16.231755 [GameLaunchController] {Main} Game launch sequence canceled
+I 2026-10-09 01:35:16.231764 [GameLaunchController] {Main} Game launch sequence canceled
+I 2026-10-09 01:35:16.231765 [GameLaunchController] {Main} Game launch sequence canceled
+I 2026-10-09 01:35:16.233048 [BNLogin] {Main} Logout
+D 2026-10-09 01:35:16.793181 [UnifiedAuth] {} UAuth: browser state changed: LoginCredential

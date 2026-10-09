@@ -1,0 +1,9 @@
+I 2026-10-09 01:16:55.383625 [Main] {Main} Command line arguments: {[0]=--from-launcher}
+D 2026-10-09 01:16:58.087956 [ProductState] {Main} InstallState (prometheus): <masked> <masked> installed=1 <masked> <masked> installPath=D:/Games/Overwatch <masked> playable=1 canCreateShortcut=1 selectedRegion=eu <masked>  <masked> localVersion=2.25.0.0.154088 <masked> progress=1 <masked>
+I 2026-10-09 01:17:00.294572 [BAPIGateway] {Main} Using cached auth token on startup. tokenType=Default
+I 2026-10-09 01:17:00.294803 [BAPIGateway] {Main} Using cached auth token on startup. tokenType=CTS
+I 2026-10-09 01:17:00.294954 [BAPIGateway] {Main} Using cached auth token on startup. tokenType=Profile
+I 2026-10-09 01:17:00.295164 [BAPIGateway] {Main} Using cached auth token on startup. <masked>
+I 2026-10-09 01:17:00.895556 [BNLogin] {Main} Logged into Battle.net successfully. |bnet=1:0:aaaa0002|game=2:0:00000000
+D 2026-10-09 01:19:55.816793 [ProductState] {Main} InstallState (prometheus): <masked> <masked> playable=0  currentStage=Setup
+D 2026-10-09 01:21:07.023898 [CommandQueue] {Main} Received IPC Message: IPC_COMMAND

@@ -1,0 +1,8 @@
+I 2026-10-09 08:54:52.680543 [Main] {Main} Command line arguments: {[0]=--from-launcher}
+D 2026-10-09 08:54:55.372237 [ProductState] {Main} InstallState (prometheus): currentOperation=UpToDate currentOperationStatus=Paused installed=1 optionalPackageInstalled=1 hasInstallModificationOptions=1 installPath=C:/Games/Overwatch sharedContainerSubpath=_retail_ playable=1 canCreateShortcut=1 selectedRegion=us activeConfigKey=00000000000000000000000000000000 regionalVersions=(cn: {playable:false config_key:00000000000000000000000000000000}, eu: {playable:true config_key:00000000000000000000000000000000}, kr: {playable:true config_key:00000000000000000000000000000000}, nexon: {playable:false config_key:00000000000000000000000000000000}, us: {playable:true config_key:00000000000000000000000000000000}) repairSupported=true localVersion=2.25.0.0.154088 latestVersion=154088 progress=1 currentStage=Complete
+I 2026-10-09 08:54:57.905525 [Frontend] {Main} Attempting to show main window. isMinimizedOnStartup=false <masked>=false varAutoStarted=false hasBattlePlatformProductCode=false needToMinimize=false hasActiveXboxConnection=false varLaunchedByXbox=false isExpectingLogin=false wasMainWindowInTray=false
+I 2026-10-09 08:54:58.004666 [BNLogin] {Main} Logged into Battle.net successfully. |bnet=1:0:aaaa0001|game=2:0:00000000
+I 2026-10-09 08:55:51.616160 [GameLaunchController] {Main} Game launch sequence canceled
+I 2026-10-09 08:55:51.616174 [GameLaunchController] {Main} Game launch sequence canceled
+I 2026-10-09 08:55:51.616176 [GameLaunchController] {Main} Game launch sequence canceled
+I 2026-10-09 08:55:51.616177 [GameLaunchController] {Main} Game launch sequence canceled

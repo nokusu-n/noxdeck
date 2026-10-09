@@ -1,0 +1,12 @@
+I 2026-10-09 01:09:24.760474 [Main] {Main} Command line arguments: {[0]=--from-launcher}
+D 2026-10-09 01:09:27.216082 [ProductState] {Main} InstallState (prometheus): <masked> <masked> installed=1 <masked> <masked> installPath=D:/Games/Overwatch <masked> playable=1 canCreateShortcut=1 selectedRegion=us <masked>  <masked> localVersion=2.25.0.0.154088 <masked> progress=1 <masked>
+I 2026-10-09 01:09:28.694117 [LoginController] {Main} External Challenge URL: https://eu.account.battle.net/…
+D 2026-10-09 01:09:29.111818 [UnifiedAuth] {} UAuth: browser state changed: Challenge
+D 2026-10-09 01:09:29.442109 [UnifiedAuth] {Main} UAuth: browser state changed: None
+D 2026-10-09 01:09:29.690804 [UnifiedAuth] {Main} UAuth: external challenge complete, submitting credentials for verification
+D 2026-10-09 01:09:29.690831 [UnifiedAuth] {Main} UAuth: browser state changed: Done
+I 2026-10-09 01:09:30.824068 [BAPIGateway] {Main} Using cached auth token on startup. tokenType=Default
+I 2026-10-09 01:09:30.824207 [BAPIGateway] {Main} Using cached auth token on startup. tokenType=CTS
+I 2026-10-09 01:09:30.824331 [BAPIGateway] {Main} Using cached auth token on startup. tokenType=Profile
+I 2026-10-09 01:09:30.976847 [BNLogin] {Main} Logged into Battle.net successfully. |bnet=1:0:aaaa0002|game=2:0:00000000
+D 2026-10-09 01:09:30.981485 [UnifiedAuth] {Main} UAuth: browser state changed: None

@@ -1,0 +1,3 @@
+I 2026-10-09 01:10:13.493865 [Main] {Main} Command line arguments: {[0]=--from-launcher}
+D 2026-10-09 01:10:15.875543 [ProductState] {Main} InstallState (prometheus): <masked> <masked> installed=1 <masked> <masked> installPath=D:/Games/Overwatch <masked> playable=1 canCreateShortcut=1 selectedRegion=us <masked>  <masked> localVersion=2.25.0.0.154088 <masked> progress=1 <masked>
+D 2026-10-09 01:10:16.812971 [UnifiedAuth] {} UAuth: browser state changed: LoginCredential

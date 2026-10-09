@@ -1,0 +1,15 @@
+I 2026-10-09 01:36:39.200078 [Main] {Main} Command line arguments: {}
+D 2026-10-09 01:36:41.591512 [ProductState] {Main} InstallState (prometheus): <masked> <masked> installed=1 <masked> <masked> installPath=D:/Games/Overwatch <masked> playable=1 canCreateShortcut=1 selectedRegion=eu <masked>  <masked> localVersion=2.25.0.0.154088 <masked> progress=1 <masked>
+I 2026-10-09 01:36:43.049351 [LoginController] {Main} External Challenge URL: https://eu.account.battle.net/…
+D 2026-10-09 01:36:43.458500 [UnifiedAuth] {} UAuth: browser state changed: Challenge
+D 2026-10-09 01:36:43.835102 [UnifiedAuth] {Main} UAuth: browser state changed: None
+D 2026-10-09 01:36:44.054088 [UnifiedAuth] {Main} UAuth: external challenge complete, submitting credentials for verification
+D 2026-10-09 01:36:44.054121 [UnifiedAuth] {Main} UAuth: browser state changed: Done
+I 2026-10-09 01:36:44.879729 [BAPIGateway] {Main} Using cached auth token on startup. tokenType=Default
+I 2026-10-09 01:36:44.880078 [BAPIGateway] {Main} Using cached auth token on startup. tokenType=CTS
+I 2026-10-09 01:36:44.880400 [BAPIGateway] {Main} Using cached auth token on startup. tokenType=Profile
+I 2026-10-09 01:36:45.067796 [BNLogin] {Main} Logged into Battle.net successfully. |bnet=1:0:aaaa0001|game=2:0:00000000
+D 2026-10-09 01:36:45.072676 [UnifiedAuth] {Main} UAuth: browser state changed: None
+D 2026-10-09 01:36:48.238515 [CommandQueue] {Main} Received IPC Message: IPC_COMMAND
+I 2026-10-09 01:36:48.241074 [<masked>] {Main} LaunchBinary: uid=prometheus selectedRegion=US binaryType=game
+I 2026-10-09 01:36:48.657611 [InstallManager] {Agent} Launched D:<masked>.exe with args: -uid prometheus, pid: 32888

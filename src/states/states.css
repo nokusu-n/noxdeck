@@ -1,0 +1,21 @@
+/* The states page only: page chrome around the real components. Never part of a release build. */
+.states { height: 100%; overflow: auto; padding: 0 32px 80px; background: #0a0b0e; color: var(--text-2); }
+.states-head { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: 18px; margin: 0 -32px; padding: 12px 32px; background: rgba(10, 11, 14, .94); border-bottom: 1px solid var(--line); }
+.states-head b { color: var(--text); font-size: 15px; }
+.states-head span { flex: 1; font-size: 13px; color: var(--text-3); }
+.sec { max-width: 1480px; margin: 36px auto 0; }
+.sec h2 { margin: 0 0 4px; font-size: 18px; font-weight: 800; color: var(--text); }
+.note { margin: 0 0 14px; font-size: 13px; color: var(--text-3); }
+.frame { position: relative; overflow: hidden; border: 1px solid #2b2f3b; border-radius: 8px; box-shadow: 0 22px 60px rgba(0,0,0,.55); }
+.shot { margin: 0; }
+.shot figcaption { margin: 0 0 6px; font-size: 12.5px; color: var(--text-3); }
+.cases { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px 16px; padding: 18px; background: var(--ground); border: 1px solid var(--line); border-radius: 8px; }
+.cases .cards { padding: 0; }
+.cards--one { grid-template-columns: minmax(0, 1fr); }
+.pair { display: grid; grid-template-columns: repeat(auto-fill, minmax(620px, 1fr)); gap: 22px 18px; }
+.pair--dialogs { grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); }
+.scrim { display: grid; place-items: center; padding: 28px 18px; background: rgba(4, 5, 8, .66); border: 1px solid var(--line); border-radius: 6px; }
+.tray { width: 280px; margin: 0; padding: 6px; list-style: none; background: #2b2b2b; border: 1px solid #454545; border-radius: 8px; color: #fff; font: 14px/1.2 "Segoe UI", sans-serif; }
+.tray li { padding: 8px 12px; border-radius: 4px; }
+.tray li:hover { background: #3a3a3a; }
+.tray .tray-edge { margin: 2px 0; }

@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Events and app commands, and the window's own controls for the custom title bar; no network, file or shell access.",
+  "windows": ["main"],
+  "permissions": ["core:default", "core:window:allow-minimize", "core:window:allow-toggle-maximize", "core:window:allow-close", "core:window:allow-start-dragging"]
+}

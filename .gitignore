@@ -1,0 +1,8 @@
+node_modules/
+dist/
+target/
+src-tauri/gen/
+e2e/.tmp/
+*.log.tmp
+.tmp-runs/
+AGENTS.md

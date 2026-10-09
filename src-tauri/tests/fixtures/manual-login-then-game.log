@@ -1,0 +1,16 @@
+I 2026-10-09 01:11:27.958206 [Main] {Main} Command line arguments: {[0]=--from-launcher}
+D 2026-10-09 01:11:30.316206 [ProductState] {Main} InstallState (prometheus): <masked> <masked> installed=1 <masked> <masked> installPath=D:/Games/Overwatch <masked> playable=1 canCreateShortcut=1 selectedRegion=us <masked>  <masked> localVersion=2.25.0.0.154088 <masked> progress=1 <masked>
+D 2026-10-09 01:11:31.297893 [UnifiedAuth] {} UAuth: browser state changed: LoginCredential
+D 2026-10-09 01:13:09.546925 [UnifiedAuth] {Main} UAuth: browser state changed: None
+D 2026-10-09 01:13:09.893992 [UnifiedAuth] {Main} UAuth: browser state changed: Done
+D 2026-10-09 01:13:09.911259 [UnifiedAuth] {Main} UAuth: browser state changed: None
+D 2026-10-09 01:13:10.026768 [UnifiedAuth] {} UAuth: browser state changed: LoginCredential
+I 2026-10-09 01:13:11.422124 [BAPIGateway] {Main} Using cached auth token on startup. tokenType=Default
+I 2026-10-09 01:13:11.422304 [BAPIGateway] {Main} Using cached auth token on startup. tokenType=CTS
+I 2026-10-09 01:13:11.422438 [BAPIGateway] {Main} Using cached auth token on startup. tokenType=Profile
+I 2026-10-09 01:13:11.422561 [BAPIGateway] {Main} Using cached auth token on startup. <masked>
+I 2026-10-09 01:13:12.230301 [BNLogin] {Main} Logged into Battle.net successfully. |bnet=1:0:aaaa0002|game=2:0:00000000
+D 2026-10-09 01:13:12.236105 [UnifiedAuth] {Main} UAuth: browser state changed: None
+I 2026-10-09 01:16:40.990916 [<masked>] {Main} LaunchBinary: uid=prometheus selectedRegion=EU binaryType=game
+I 2026-10-09 01:16:41.236497 [InstallManager] {Agent} Launched D:<masked>.exe with args: -uid prometheus, pid: 33408
+I 2026-10-09 01:16:42.842380 [<masked>] {Main} Game is now running with game launch behavior set to exit.

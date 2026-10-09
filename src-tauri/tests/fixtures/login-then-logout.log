@@ -1,0 +1,18 @@
+I 2026-10-09 01:28:31.511343 [Main] {Main} Command line arguments: {[0]=--from-launcher}
+D 2026-10-09 01:28:34.092504 [ProductState] {Main} InstallState (prometheus): <masked> <masked> installed=1 <masked> <masked> installPath=D:/Games/Overwatch <masked> canCreateShortcut=1 selectedRegion=eu <masked>  <masked> localVersion=2.25.0.0.154088 <masked> progress=0.0120711
+I 2026-10-09 01:28:36.111945 [BAPIGateway] {Main} Using cached auth token on startup. tokenType=Default
+I 2026-10-09 01:28:36.112237 [BAPIGateway] {Main} Using cached auth token on startup. tokenType=CTS
+I 2026-10-09 01:28:36.112376 [BAPIGateway] {Main} Using cached auth token on startup. tokenType=Profile
+I 2026-10-09 01:28:36.112509 [BAPIGateway] {Main} Using cached auth token on startup. <masked>
+I 2026-10-09 01:28:36.788847 [BNLogin] {Main} Logged into Battle.net successfully. |bnet=1:0:aaaa0002|game=2:0:00000000
+D 2026-10-09 01:28:42.626911 [ProductState] {Main} InstallState (prometheus): <masked>
+D 2026-10-09 01:28:43.255658 [ProductState] {Main} InstallState (prometheus): <masked> <masked> playableProgress=0.0120711
+D 2026-10-09 01:28:47.835740 [ProductState] {Main} InstallState (prometheus): <masked> <masked> <masked> <masked> progress=0.0121849 playableProgress=0.0121849 thresholds=(1,1,1)
+D 2026-10-09 01:34:54.245324 [ProductState] {Main} InstallState (prometheus): <masked> bytesToDownload=0 <masked> downloadRate=0 downloadRemaining=0 progress=1 playableProgress=1 <masked> <masked>
+D 2026-10-09 01:35:03.765679 [ProductState] {Main} InstallState (prometheus): <masked> <masked> thresholds=() currentStage=Setup
+D 2026-10-09 01:35:03.766740 [ProductState] {Main} InstallState (prometheus): <masked> <masked>
+I 2026-10-09 01:35:16.232943 [BNLogin] {Main} BattleNetLogin::DeleteToken(): Deleting registry token because !m_lastEmailUsed.empty()
+I 2026-10-09 01:35:16.233048 [BNLogin] {Main} Logout
+I 2026-10-09 01:35:16.234594 [BNLogin] {Main} BattleNetLogin::DeleteToken(): Deleting registry token because !m_lastEmailUsed.empty()
+I 2026-10-09 01:35:16.234643 [BNLogin] {Main} BattleNetLogin::DeleteToken(): Clearing cached token
+D 2026-10-09 01:35:16.793181 [UnifiedAuth] {} UAuth: browser state changed: LoginCredential

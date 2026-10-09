@@ -1,0 +1,14 @@
+[workspace]
+members = ["src-tauri", "fake-launcher"]
+resolver = "2"
+
+# The one place the version lives: the app, the window and the installer read it from here.
+[workspace.package]
+version = "0.5.0"
+edition = "2021"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = true
