@@ -1958,7 +1958,7 @@ checksum = "650eef8c711430f1a879fdd01d4745a7deea475becfb90269c06775983bbf086"
 
 [[package]]
 name = "noxdeck"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "rusqlite",
  "serde",
@@ -3542,7 +3542,7 @@ dependencies = [
 
 [[package]]
 name = "test-launcher"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "rusqlite",
  "serde",

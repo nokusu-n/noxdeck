@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { AccountRecord } from "./AccountRecord";
 import { SettingsScreen } from "./SettingsScreen";
 import { DeleteDialog, GameDialog, ReminderDialog } from "./Dialogs";
-import { Banner, EmptyState, WaitPanel } from "./Notices";
+import { Banner, EmptyState, OperationStatus, WaitPanel } from "./Notices";
 import { RatingPicker } from "./RatingPicker";
 import { SettingsHead, Toolbar } from "./Toolbar";
 import { TitleBar } from "./TitleBar";
@@ -120,13 +120,20 @@ export function MainWindow({ state, api, controls, initial }: {
             </Banner>
           )}
           {!found && <Banner tone="bad" testid="launcher-not-found">{t("launcherNotFound")}</Banner>}
-          {state.operation && (
+          {state.operation?.kind === "add" && (
             <WaitPanel
-              testid={add ? "waiting" : "operation"}
+              testid="waiting"
               phase={state.operation.phase}
-              title={add ? t("waitingTitle") : t(state.operation.kind === "game" ? "operationGame" : "operationStart")}
-              body={add && state.operation.phase === "waiting_login" ? t("waitingBody") : t(phaseKey[state.operation.phase])}
+              title={t("waitingTitle")}
+              body={state.operation.phase === "waiting_login" ? t("waitingBody") : t(phaseKey[state.operation.phase])}
               onCancel={state.operation.cancellable ? () => api.cancelOperation() : null}
+            />
+          )}
+          {state.operation && state.operation.kind !== "add" && (
+            <OperationStatus
+              phase={state.operation.phase}
+              title={t(state.operation.kind === "game" ? "operationGame" : "operationStart")}
+              body={t(phaseKey[state.operation.phase])}
             />
           )}
           {message && <Banner tone={message === "saved" ? "ok" : "info"} testid="message">{t(message as Key) ?? message}</Banner>}

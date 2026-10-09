@@ -17,7 +17,7 @@ export function Banner({ tone, testid, children, action }: { tone: Tone; testid:
   );
 }
 
-/** A launcher action is running, and the player may have to do something (or cancel). */
+/** Adding an account: there is no record yet, so its panel carries the step and the Cancel button. */
 export function WaitPanel({ testid, phase, title, body, onCancel }: { testid: string; phase: string; title: string; body: string; onCancel: (() => void) | null }) {
   return (
     <div data-testid={testid} data-phase={phase} className="wait">
@@ -27,6 +27,20 @@ export function WaitPanel({ testid, phase, title, body, onCancel }: { testid: st
         <p>{body}</p>
       </div>
       {onCancel && <button data-testid="cancel" className="btn" onClick={onCancel}>{t("cancel")}</button>}
+    </div>
+  );
+}
+
+/**
+ * A start of the launcher or the game shows nothing above the list: the record's own chip and the
+ * spinner on its button are the whole progress display. The step is still announced, to screen
+ * readers and to the tests that wait on this element, without taking a line of the window.
+ */
+export function OperationStatus({ phase, title, body }: { phase: string; title: string; body: string }) {
+  return (
+    <div data-testid="operation" data-phase={phase} className="sr-only" role="status">
+      <b>{title}</b>
+      <p>{body}</p>
     </div>
   );
 }

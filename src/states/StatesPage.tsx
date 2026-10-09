@@ -91,7 +91,7 @@ export function StatesPage() {
   return (
     <div className="states" key={lang}>
       <header className="states-head">
-        <b>Noxdeck 0.5.0 · состояния</b>
+        <b>Noxdeck 0.5.1 · состояния</b>
         <span>Только для разработки. Данные придуманы, ядро не вызывается.</span>
         <div className="seg" role="group">
           {(["ru", "en"] as const).map((l) => <button key={l} className={`seg-b${lang === l ? " is-on" : ""}`} aria-pressed={lang === l} onClick={() => setLanguage(l)}>{l.toUpperCase()}</button>)}
@@ -106,6 +106,9 @@ export function StatesPage() {
       </Section>
       <Section title="Окно на весь экран" note="1440×810, показано в масштабе 66%.">
         <Frame w={1440} h={810} zoom={0.66}><MainWindow state={s({})} api={api} controls={controls(true)} /></Frame>
+      </Section>
+      <Section title="Главное окно во время запуска" note="960×720. Шаг виден только на карточке и на её кнопке: над списком ничего не появляется, список не сдвигается.">
+        <Frame w={960} h={720}><MainWindow state={s({ operation: op("starting") })} api={api} controls={controls()} /></Frame>
       </Section>
 
       <Section title="Состояния записи" note="Каждое состояние из брифа, на одной и той же записи. Подписи слева не часть программы.">
@@ -124,7 +127,7 @@ export function StatesPage() {
           <Shot caption="Добавление аккаунта: ждём вход, и результат прошлого действия">
             <Frame w={600} h={520}><MainWindow state={s({ operation: op("waiting_login", "add", null, true) })} api={api} controls={controls()} initial={{ message: "saved" }} /></Frame>
           </Shot>
-          <Shot caption="Идёт запуск с шагом и отказ">
+          <Shot caption="Запуск: шаг только на карточке и на её кнопке">
             <Frame w={600} h={520}><MainWindow state={s({ operation: op("starting") })} api={api} controls={controls()} initial={{ message: "r_launcher_not_closable" }} /></Frame>
           </Shot>
           <Shot caption="Обновление рейтинга: кнопка в шапке занята">

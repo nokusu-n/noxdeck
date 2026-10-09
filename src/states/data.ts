@@ -24,7 +24,7 @@ export const accounts: Account[] = [
 
 export const base: State = {
   syncing: false,
-  version: "0.5.0",
+  version: "0.5.1",
   launcher: "logged_in",
   gameRunning: true,
   operation: null,
