@@ -2,7 +2,7 @@ param([string]$App = 'target\e2e\debug\noxdeck.exe', [string]$Only = '')
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path -LiteralPath '.').Path
 $exe = (Resolve-Path -LiteralPath $App).Path
-$fake = (Resolve-Path -LiteralPath 'target\e2e\debug\fake-launcher.exe').Path
+$fake = (Resolve-Path -LiteralPath 'target\e2e\debug\test-launcher.exe').Path
 $temporaryRoot = Join-Path $repo 'e2e\.tmp'
 New-Item -ItemType Directory -Path $temporaryRoot -Force | Out-Null
 Add-Type -TypeDefinition @'

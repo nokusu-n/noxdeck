@@ -1,5 +1,5 @@
 [package]
-name = "fake-launcher"
+name = "test-launcher"
 version.workspace = true
 edition.workspace = true
 publish = false

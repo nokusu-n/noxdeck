@@ -30,7 +30,7 @@ const run = (cmd) => execSync(cmd, { cwd: root, env, stdio: "inherit" });
 try {
 if (!process.env.E2E_SKIP_BUILD) {
   run("npx tauri build --debug --no-bundle");
-  run("cargo build -p fake-launcher");
+  run("cargo build -p test-launcher");
 }
 
 const only = process.env.E2E_ONLY;

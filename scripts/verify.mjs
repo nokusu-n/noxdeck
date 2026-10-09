@@ -30,7 +30,7 @@ try {
   if (mode === "all") await run(process.execPath, ["e2e/run.mjs"]);
   if (mode === "program") {
     env.CARGO_TARGET_DIR = join(root, "target", "e2e");
-    await tauri(["--debug", "--no-bundle"]); await run("cargo", ["build", "-p", "fake-launcher"]);
+    await tauri(["--debug", "--no-bundle"]); await run("cargo", ["build", "-p", "test-launcher"]);
   }
   if (mode === "all" || mode === "program") await run("powershell", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "scripts/program-tests.ps1", ...(process.env.PROGRAM_ONLY ? ["-Only", process.env.PROGRAM_ONLY] : [])]);
   if (mode === "installer") await tauri([]);

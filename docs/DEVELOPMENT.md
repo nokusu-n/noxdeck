@@ -20,13 +20,13 @@ npm install
 |---|---|
 | Run in development | `npm run tauri dev` |
 | Full automated suite (core, interface, program) | `npm test` |
-| Core tests (flows against a fake launcher directory) | `npm run test:core` |
-| Interface tests (the running app against the `fake-launcher` executable) | `npm run e2e` |
+| Core tests (flows against a test launcher directory) | `npm run test:core` |
+| Interface tests (the running app against the `test-launcher` executable) | `npm run e2e` |
 | Program checks (window lifecycle, instance, memory, time to list) | `npm run test:program` |
 | Build the installer, without installing it | `npm run build:installer` → `target/release/bundle/nsis/Noxdeck_0.5.0_x64-setup.exe` |
 | Type-check the interface | `npm run typecheck` |
 
-`npm run e2e` builds its own copy of the app and of `fake-launcher` into
+`npm run e2e` builds its own copy of the app and of `test-launcher` into
 `target/e2e`, then runs every `e2e/*.spec.mjs`. `E2E_SKIP_BUILD=1` reuses the last
 build; `E2E_ONLY=<part of a file name>` runs matching specs, and
 `E2E_TEST_NAME=<regular expression>` selects test names within them.
@@ -76,7 +76,7 @@ cargo test --workspace
 - `src/` — the React interface; `src/core.ts` is the typed boundary to the core.
 - `src-tauri/src/ratings/` — stored rating values and background refresh;
   `overfast.rs` alone knows the service URL, request path and response format.
-- `fake-launcher/` — a test-only executable that plays the launcher from a
+- `e2e/test-launcher/` — a test-only executable that plays the launcher from a
   `scenario.json`.
 - `e2e/` — WebDriver tests.
 - `src-tauri/src/shell.rs`, `shell/` — desktop tray/window, Windows instance guard

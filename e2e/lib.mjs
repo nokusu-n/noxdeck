@@ -1,5 +1,5 @@
 // Harness for the interface tests: the running app, driven through tauri-driver,
-// against the fake-launcher executable in a temporary directory. Nothing here
+// against the test-launcher executable in a temporary directory. Nothing here
 // touches the real Battle.net launcher: every location the app uses is moved into
 // the temporary directory through the NOXDECK_* variables, and the harness refuses
 // to start the app if one of them points elsewhere.
@@ -16,7 +16,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 export const VERSION = readFileSync(join(root, "Cargo.toml"), "utf8").match(/^version = "([^"]+)"/m)[1];
 // E2E_APP points the tests at another build of the app, e.g. an installed one.
 export const APP = process.env.E2E_APP ?? join(root, "target", "e2e", "debug", "noxdeck.exe");
-export const FAKE = join(root, "target", "e2e", "debug", "fake-launcher.exe");
+export const FAKE = join(root, "target", "e2e", "debug", "test-launcher.exe");
 const FIXTURE_CONFIG = join(root, "src-tauri", "tests", "fixtures", "Battle.net.config");
 export const ORIGINAL_LIST =
   "user1@example.com,user2@example.com,user3@example.com,user4@example.com,user5@example.com";
@@ -67,7 +67,7 @@ function killInside(dir) {
 }
 
 /**
- * Start the app on a fresh fake launcher directory.
+ * Start the app on a fresh test launcher directory.
  * opts: scenario (object for scenario.json), list (initial SavedAccountNames),
  *       accounts (records for accounts.json), settings (object), lang ("ru" | "en"),
  *       env (extra environment), noInstall (leave the launcher uninstalled).

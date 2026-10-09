@@ -1,4 +1,4 @@
-//! "Add account": flows against the fake launcher directory.
+//! "Add account": flows against the test launcher directory.
 
 mod common;
 

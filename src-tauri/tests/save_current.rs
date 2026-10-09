@@ -1,4 +1,4 @@
-//! "Save current": flows against the fake launcher directory. It never stops or
+//! "Save current": flows against the test launcher directory. It never stops or
 //! starts a process.
 
 mod common;

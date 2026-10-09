@@ -247,11 +247,11 @@ impl Env {
                         .unwrap();
                         let log = if mode == "exits" {
                             include_str!(
-                                "../../src-tauri/tests/fixtures/launch-by-hand-launcher-exits.log"
+                                "../../../src-tauri/tests/fixtures/launch-by-hand-launcher-exits.log"
                             )
                         } else {
                             include_str!(
-                                "../../src-tauri/tests/fixtures/launch-command-launcher-stays.log"
+                                "../../../src-tauri/tests/fixtures/launch-command-launcher-stays.log"
                             )
                         };
                         // Keep the supplied fixture's launch sequence, without its login identity.

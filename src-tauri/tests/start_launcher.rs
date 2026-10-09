@@ -1,4 +1,4 @@
-//! "Start launcher": flows against the fake launcher directory.
+//! "Start launcher": flows against the test launcher directory.
 
 mod common;
 

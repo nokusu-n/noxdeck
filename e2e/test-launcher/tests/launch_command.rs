@@ -17,7 +17,7 @@ impl StandIn {
         for name in ["install", "roaming", "local", "game"] {
             fs::create_dir(root.path().join(name)).unwrap();
         }
-        let exe = env!("CARGO_BIN_EXE_fake-launcher");
+        let exe = env!("CARGO_BIN_EXE_test-launcher");
         for name in ["Battle.net Launcher.exe", "Battle.net.exe"] {
             fs::copy(exe, install.join(name)).unwrap();
         }
