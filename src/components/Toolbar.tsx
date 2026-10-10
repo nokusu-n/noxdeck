@@ -2,6 +2,7 @@ import { t } from "../i18n";
 import { games, type Sort, type State, type Tab } from "../core";
 import { gameLabel } from "./GamePicker";
 import { GameMark } from "../ui/GameMark";
+import { roleMark } from "./Ratings";
 import { Icon } from "../ui/Icon";
 import battleNet from "../assets/battlenet-mark.png";
 
@@ -43,6 +44,15 @@ export function GameBar({ state, onTab, onSort }: { state: State; onTab: (tab: T
       <button data-testid="sort-last-login" className={`seg-b${state.sort === "last_login" ? " is-on" : ""}`} aria-pressed={state.sort === "last_login"} onClick={() => onSort("last_login")}>{t("sortLastLogin")}</button>
       <button data-testid="sort-battletag" className={`seg-b${state.sort === "battletag" ? " is-on" : ""}`} aria-pressed={state.sort === "battletag"} onClick={() => onSort("battletag")}>{t("sortBattletag")}</button>
     </div>
+    {state.tab === "overwatch" && <div className="seg" role="group" aria-label={t("sortRole")}>
+      {(["tank", "damage", "support"] as const).map(role => {
+        const active = state.sort.startsWith(`${role}_`);
+        const ascending = state.sort === `${role}_asc`;
+        return <button key={role} data-testid={`sort-role-${role}`} data-direction={active ? ascending ? "asc" : "desc" : "none"} className={`seg-b role-sort${active ? " is-on" : ""}`} aria-pressed={active} title={`${t(role)}${active ? `: ${t(ascending ? "rankLowFirst" : "rankHighFirst")}` : ""}`} aria-label={t(role)} onClick={() => onSort(`${role}_${active && !ascending ? "asc" : "desc"}`)}>
+          <img src={roleMark[role]} alt="" width={16} height={15} />{active && <Icon name="i-chev-down" size={12} />}
+        </button>;
+      })}
+    </div>}
   </div>;
 }
 

@@ -5,6 +5,7 @@
 const gameName = "Overwatch";
 
 const en = {
+  sortRole: "Sort by role rank", rankLowFirst: "Lowest rank first", rankHighFirst: "Highest rank first",
   gameTabs: "Games", allGames: "All", tabWow: "WoW", tabWowForever: "WoW: Forever", sortLabel: "Sort accounts",
   movedTo: "Moved to {game}", emptyGameTab: "No accounts for {game} yet", emptyGameHint: "Add the first account: it will get this game.",
   world_of_warcraft: "World of Warcraft", world_of_warcraft_forever: "World of Warcraft: Forever", call_of_duty: "Call of Duty",
@@ -120,6 +121,7 @@ const en = {
 };
 
 const ru: typeof en = {
+  sortRole: "Сортировка по рангу роли", rankLowFirst: "Сначала низкий ранг", rankHighFirst: "Сначала высокий ранг",
   gameTabs: "Игры", allGames: "Все", tabWow: "WoW", tabWowForever: "WoW: Forever", sortLabel: "Сортировка аккаунтов",
   movedTo: "Перенесён в {game}", emptyGameTab: "В {game} пока нет аккаунтов", emptyGameHint: "Добавьте первый аккаунт: он сразу получит эту игру.",
   world_of_warcraft: "World of Warcraft", world_of_warcraft_forever: "World of Warcraft: Forever", call_of_duty: "Call of Duty",
@@ -235,6 +237,7 @@ const ru: typeof en = {
 };
 
 const it: typeof en = {
+  sortRole: "Ordina per grado del ruolo", rankLowFirst: "Prima i gradi più bassi", rankHighFirst: "Prima i gradi più alti",
   gameTabs: "Giochi", allGames: "Tutti", tabWow: "WoW", tabWowForever: "WoW: Forever", sortLabel: "Ordina account",
   movedTo: "Spostato in {game}", emptyGameTab: "Nessun account per {game}", emptyGameHint: "Aggiungi il primo account: riceverà questo gioco.",
   world_of_warcraft: "World of Warcraft", world_of_warcraft_forever: "World of Warcraft: Forever", call_of_duty: "Call of Duty",

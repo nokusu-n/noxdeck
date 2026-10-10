@@ -10,6 +10,13 @@ use std::path::Path;
 pub enum Sort {
     LastLogin,
     Battletag,
+    TankDesc, TankAsc, DamageDesc, DamageAsc, SupportDesc, SupportAsc,
+}
+impl Sort {
+    pub fn role(self) -> Option<(crate::ratings::Role, bool)> {
+        use crate::ratings::Role::*;
+        match self { Self::TankDesc => Some((Tank, false)), Self::TankAsc => Some((Tank, true)), Self::DamageDesc => Some((Damage, false)), Self::DamageAsc => Some((Damage, true)), Self::SupportDesc => Some((Support, false)), Self::SupportAsc => Some((Support, true)), _ => None }
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Default)]
@@ -33,7 +40,7 @@ pub enum Language { Ru, En, It }
 
 fn enabled() -> bool { true }
 
-#[derive(Serialize, Deserialize, Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "snake_case")]
 pub enum Tab { #[default] All, Overwatch, WorldOfWarcraft, WorldOfWarcraftForever, CallOfDuty }
 impl Tab {
@@ -46,6 +53,8 @@ impl Tab {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Settings {
+    #[serde(default)]
+    pub tab_sorts: std::collections::BTreeMap<Tab, Sort>,
     #[serde(default)]
     pub tab: Tab,
     #[serde(default)]
@@ -72,6 +81,7 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Settings {
+            tab_sorts: Default::default(),
             tab: Tab::All, tab_version: None,
             schema: 1, sort: Sort::LastLogin, dismissed: Dismissed::default(),
             after_start: AfterStart::Tray, show_game_start: true, language: None,
@@ -90,6 +100,10 @@ pub fn mask_email(email: &str) -> String {
 }
 
 impl Settings {
+    pub fn current_sort(&self) -> Sort {
+        let sort = self.tab_sorts.get(&self.tab).copied().unwrap_or(if self.tab == Tab::All { self.sort } else { Sort::LastLogin });
+        if self.tab != Tab::Overwatch && sort.role().is_some() { Sort::LastLogin } else { sort }
+    }
     pub fn resolved_language(&self, locale: &str) -> Language {
         self.language.unwrap_or_else(|| {
             let locale = locale.to_ascii_lowercase();

@@ -44,6 +44,10 @@ pub struct Ratings {
     pub support: Option<Rating>,
 }
 impl Ratings {
+    pub fn score(&self, role: Role) -> Option<usize> {
+        let rating = match role { Role::Tank => &self.tank, Role::Damage => &self.damage, Role::Support => &self.support }.as_ref()?;
+        Some(RANKS.iter().position(|r| *r == rating.value.rank)? * 5 + 5 - usize::from(rating.value.division?))
+    }
     pub fn role_mut(&mut self, role: Role) -> &mut Option<Rating> {
         match role { Role::Tank => &mut self.tank, Role::Damage => &mut self.damage, Role::Support => &mut self.support }
     }

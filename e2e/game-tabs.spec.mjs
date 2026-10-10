@@ -8,6 +8,27 @@ afterEach(async () => { await app?.stop(); app = null; });
 const quiet = { auto_ratings: false, dismissed: { remember_login: true, logout_warning: true } };
 const capture = async name => { if (process.env.NOXDECK_CAPTURE_DIR) await app.browser.saveScreenshot(join(process.env.NOXDECK_CAPTURE_DIR, name)); };
 
+test("a role sorts highest first, flips on the second press and remembers each tab's sort", async () => {
+  const rating = (rank, division) => ({ tank: { rank, division, source: "manual" } });
+  app = await startApp({ accounts: [record(A, { ratings: rating("gold", 3) }), record(B, { ratings: rating("champion", 1) }), record(C)], settings: quiet });
+  const { h } = app;
+  await h.click("sort-battletag");
+  await h.click("tab-overwatch");
+  await h.click("sort-role-tank");
+  await h.tick(async () => (await h.ids()).join() === [B.id, A.id, C.id].join(), "descending role order");
+  assert.equal(await h.el("sort-role-tank").getAttribute("data-direction"), "desc");
+  assert.equal(await h.el("sort-last-login").getAttribute("aria-pressed"), "false");
+  await capture("overwatch-role-sort.png");
+  await h.click("sort-role-tank");
+  await h.tick(async () => (await h.ids()).join() === [A.id, B.id, C.id].join(), "ascending role order");
+  assert.equal(await h.el("sort-role-tank").getAttribute("data-direction"), "asc");
+  await h.click("tab-all");
+  assert.equal(await h.el("sort-battletag").getAttribute("aria-pressed"), "true");
+  assert.equal(await h.exists("sort-role-tank"), false);
+  await h.click("tab-overwatch");
+  assert.equal(await h.el("sort-role-tank").getAttribute("data-direction"), "asc");
+});
+
 test("the gear changes a game, moves the card from its tab and keeps the now empty tab selected", async () => {
   app = await startApp({ accounts: [record(A), record(B, { game: "call_of_duty" }), record(C, { game: "none" })], settings: quiet });
   const { h } = app;

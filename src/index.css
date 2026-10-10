@@ -80,6 +80,8 @@ body { margin: 0; overflow: hidden; background: var(--ground); color: var(--text
   .game-tab { padding: 0 8px; font-size: 12px; }
   .game-tab.is-on { background: var(--accent-soft); color: var(--accent-hi); }
   .game-tab.is-empty { color: var(--text-3); }
+  .role-sort { display: inline-flex; align-items: center; gap: 4px; }
+  .role-sort[data-direction="asc"] .ic { transform: rotate(180deg); }
   .game-picker { width: 300px; }
   .game-option { width: 100%; justify-content: flex-start; margin: 2px 0; }
   .game-option.is-on { background: var(--accent-soft); color: var(--accent-hi); }

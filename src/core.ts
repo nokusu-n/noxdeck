@@ -23,7 +23,7 @@ export const games: Exclude<Game, "none">[] = ["overwatch", "world_of_warcraft",
 export type Tab = "all" | Exclude<Game, "none">;
 
 export type LoginState = "ready" | "password_wanted" | "code_wanted";
-export type Sort = "last_login" | "battletag";
+export type Sort = "last_login" | "battletag" | `${Role}_${"desc" | "asc"}`;
 export const ranks = ["bronze", "silver", "gold", "platinum", "emerald", "diamond", "master", "grandmaster", "champion"] as const;
 export type Rank = typeof ranks[number];
 export type Role = "tank" | "damage" | "support";

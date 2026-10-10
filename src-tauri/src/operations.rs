@@ -782,6 +782,9 @@ impl Core {
 
     pub fn set_sort(&self, sort: Sort) {
         let mut inner = lock(&self.inner);
+        if sort.role().is_some() && inner.settings.tab != crate::settings::Tab::Overwatch { return; }
+        let tab = inner.settings.tab;
+        inner.settings.tab_sorts.insert(tab, sort);
         inner.settings.sort = sort;
         self.save_settings(&inner);
         drop(inner);

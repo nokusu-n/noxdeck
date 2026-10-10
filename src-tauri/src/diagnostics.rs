@@ -87,7 +87,7 @@ impl Journal {
             if let Some(previous) = &entries.settings {
                 let old = serde_json::to_value(previous).unwrap();
                 let new = serde_json::to_value(settings).unwrap();
-                for name in ["sort", "tab", "after_start", "show_game_start", "close_launcher", "show_ratings", "auto_ratings", "hide_emails", "language"] {
+                for name in ["sort", "tab", "tab_sorts", "after_start", "show_game_start", "close_launcher", "show_ratings", "auto_ratings", "hide_emails", "language"] {
                     if old[name] != new[name] { changes.push(Step::SettingChanged { name, value: new[name].clone() }); }
                 }
                 for name in ["remember_login", "logout_warning"] {

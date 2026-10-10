@@ -396,6 +396,7 @@ impl Core {
         let (ratings_trigger, receiver) = std::sync::mpsc::sync_channel(1);
         let (mut registry, reset_a) = Registry::load(&paths.data.join("accounts.json"));
         let (mut settings, reset_s) = Settings::load(&paths.data.join("settings.json"));
+        settings.tab_sorts.entry(settings::Tab::All).or_insert(settings.sort);
         if settings.tab_version.as_deref() != Some(version) {
             settings.tab = settings::Tab::All;
             settings.tab_version = Some(version.to_owned());

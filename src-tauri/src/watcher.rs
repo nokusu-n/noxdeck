@@ -183,7 +183,8 @@ impl Core {
                 last_outcome: inner.outcomes.get(&a.id).map(|(note, _)| *note),
             })
             .collect();
-        match inner.settings.sort {
+        let sort = inner.settings.current_sort();
+        match sort {
             // ISO times compare as text; most recent first, `None` last.
             Sort::LastLogin => {
                 accounts.sort_by(|a, b| match (&a.last_login_at, &b.last_login_at) {
@@ -199,6 +200,15 @@ impl Core {
                 (None, Some(_)) => std::cmp::Ordering::Greater,
                 (None, None) => std::cmp::Ordering::Equal,
             }),
+            role_sort => {
+                let (role, ascending) = role_sort.role().unwrap();
+                accounts.sort_by(|a, b| match (a.ratings.score(role), b.ratings.score(role)) {
+                    (Some(x), Some(y)) => (if ascending { x.cmp(&y) } else { y.cmp(&x) }).then_with(|| b.last_login_at.cmp(&a.last_login_at)),
+                    (Some(_), None) => std::cmp::Ordering::Less,
+                    (None, Some(_)) => std::cmp::Ordering::Greater,
+                    (None, None) => b.last_login_at.cmp(&a.last_login_at),
+                });
+            },
         }
         State {
             tab: inner.settings.tab,
@@ -214,7 +224,7 @@ impl Core {
                 cancellable: o.kind != OpKind::Add || o.phase == Phase::WaitingLogin,
             }),
             accounts,
-            sort: inner.settings.sort,
+            sort,
             dismissed: DismissedView {
                 remember_login: inner.settings.dismissed.remember_login,
                 logout_warning: inner.settings.dismissed.logout_warning,
