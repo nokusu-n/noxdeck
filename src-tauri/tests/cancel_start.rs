@@ -1,0 +1,102 @@
+mod common;
+use common::*;
+use noxdeck_lib::{Phase, tray};
+use noxdeck_lib::launcher::Processes;
+use std::time::Duration;
+
+const ID: &str = "aaaa0001";
+fn seeded() -> Fake {
+    let f = Fake::new();
+    f.seed_accounts(&accounts_file(&[account_json(ID, Some("placeholder@example.com"), Some("Placeholder#1111"), "ready")]));
+    f
+}
+fn login_on_start(f: &Fake) {
+    let sim = f.sim.clone();
+    f.procs.on_start(move || { let run = sim.new_run(); run.login(ID); run.line("InstallState (prometheus): installed=1 playable=1"); });
+}
+fn guarded_cancel(core: &noxdeck_lib::Core) {
+    std::thread::sleep(core.timing.cancel_guard);
+    core.cancel_operation();
+    wait_idle(core);
+    assert_eq!(account(&core.state(), ID).last_outcome, None);
+}
+
+#[test]
+fn double_click_is_ignored_then_launcher_wait_can_be_cancelled_and_started_again() {
+    let f = seeded();
+    let core = f.core();
+    core.start_launcher(ID).unwrap();
+    core.cancel_operation();
+    std::thread::sleep(Duration::from_millis(20));
+    assert!(core.state().operation.is_some());
+    guarded_cancel(&core);
+    assert!(f.procs.launcher_running(&f.install), "a visible launcher is left alone");
+    login_on_start(&f);
+    core.start_launcher(ID).unwrap();
+    wait_idle(&core);
+    assert!(account(&core.state(), ID).is_current);
+}
+
+#[test]
+fn cancelling_a_hidden_launcher_during_login_stops_only_that_launcher() {
+    let f = seeded();
+    let core = f.core();
+    core.start_game(ID, false).unwrap();
+    wait_for(&core, "waiting login", |s| s.operation.as_ref().is_some_and(|o| o.phase == Phase::WaitingLogin));
+    guarded_cancel(&core);
+    assert!(!core.state().game_running);
+    assert!(!f.procs.launcher_running(&f.install));
+    assert!(!f.procs.calls().iter().any(|c| c == "send_launch_command" || c == "stop_game"));
+    login_on_start(&f);
+    core.start_game(ID, false).unwrap();
+    wait_for(&core, "game wait", |s| s.operation.as_ref().is_some_and(|o| o.phase == Phase::LaunchingGame));
+    guarded_cancel(&core);
+    assert!(!f.procs.launcher_running(&f.install));
+}
+
+#[test]
+fn cancelling_a_reused_launcher_through_the_tray_leaves_it_running() {
+    let f = seeded();
+    let run = f.sim.new_run();
+    run.login(ID);
+    run.line("InstallState (prometheus): installed=1 playable=1");
+    f.procs.set_running(true);
+    let core = f.core();
+    core.start_game(ID, false).unwrap();
+    wait_for(&core, "game wait", |s| s.operation.as_ref().is_some_and(|o| o.phase == Phase::LaunchingGame));
+    let item = tray::menu(&core.state()).into_iter().find(|i| i.id == format!("acc-{ID}")).unwrap();
+    assert!(item.enabled);
+    assert_eq!(item.label, "Cancel");
+    std::thread::sleep(core.timing.cancel_guard);
+    tray::click(&core, &item.id);
+    wait_idle(&core);
+    assert!(f.procs.launcher_running(&f.install));
+    assert_eq!(account(&core.state(), ID).last_outcome, None);
+    assert!(!f.procs.calls().iter().any(|c| c == "stop_launcher"));
+}
+
+#[test]
+fn cancelling_after_a_game_appears_leaves_both_processes_alone() {
+    let f = seeded();
+    login_on_start(&f);
+    f.procs.set_game_window(false);
+    let procs = f.procs.clone();
+    f.procs.on_launch(move || procs.set_game(true));
+    let core = f.core();
+    core.start_game(ID, false).unwrap();
+    wait_for(&core, "handover", |s| s.operation.as_ref().is_some_and(|o| o.phase == Phase::ClosingLauncher));
+    guarded_cancel(&core);
+    assert!(core.state().game_running && f.procs.launcher_running(&f.install));
+    assert!(!f.procs.calls().iter().any(|c| c == "stop_launcher" || c == "stop_game"));
+}
+
+#[test]
+fn a_game_closed_for_a_restart_stays_closed_after_cancel() {
+    let f = seeded();
+    f.procs.set_game(true);
+    let core = f.core();
+    core.start_game(ID, true).unwrap();
+    guarded_cancel(&core);
+    assert!(!core.state().game_running);
+    assert_eq!(f.procs.calls().iter().filter(|c| *c == "stop_game").count(), 1);
+}

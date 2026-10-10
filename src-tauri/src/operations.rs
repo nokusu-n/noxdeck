@@ -31,9 +31,11 @@ impl Core {
             let mut inner = lock(&self.inner);
             let op = inner.operation.take();
             if let Some(op) = &op {
-                let outcome = if success {
+                let cancelled = self.cancel.load(Ordering::SeqCst);
+                if cancelled { if let Some(id) = &op.account_id { inner.outcomes.remove(id); } }
+                let outcome = if cancelled { Outcome::Cancelled } else if success {
                     Outcome::Success
-                } else if self.cancel.load(Ordering::SeqCst) { Outcome::Cancelled }
+                }
                 else if let Some((note, _)) = op.account_id.as_ref().and_then(|id| inner.outcomes.get(id)) {
                     match *note { "no_answer" => Outcome::NoAnswer, "game_needs_update" => Outcome::GameNeedsUpdate, "game_not_started" => Outcome::GameNotStarted, _ => Outcome::Failed }
                 } else if let Some(account) = op.account_id.as_ref().and_then(|id| inner.registry.find(id)) {
@@ -43,7 +45,9 @@ impl Core {
             }
             if op.is_some_and(|o| matches!(o.kind, OpKind::Start | OpKind::Game)) {
                 use crate::shell::ShellRequest::*;
-                if !success {
+                if self.cancel.load(Ordering::SeqCst) {
+                    None
+                } else if !success {
                     Some(ShowWindow)
                 } else {
                     match inner.settings.after_start {
@@ -130,6 +134,8 @@ impl Core {
                 account_id,
                 phase: Phase::Stopping,
                 previous_game_pids: if kind == OpKind::Game { inner.game_pids.clone() } else { vec![] },
+                began: Instant::now(),
+                hidden_started: false,
             });
             install
         };
@@ -159,13 +165,20 @@ impl Core {
     }
 
     fn start_selected_launcher(&self, install: &Path, email: &str) -> bool {
+        if self.cancel.load(Ordering::SeqCst) { return false; }
         self.set_phase(Phase::Starting);
         self.journal.record(Step::Command(Command::SelectAccount));
         let written = matches!(
             self.write_list(install, email),
             Ok(()) | Err(ConfigError::KeyMissing)
         );
-        written && self.start_launcher_journalled(install).is_ok()
+        let started = written && self.start_launcher_journalled(install).is_ok();
+        if started {
+            if let Some(op) = lock(&self.inner).operation.as_mut() {
+                op.hidden_started = op.kind == OpKind::Game;
+            }
+        }
+        started
     }
 
     fn start_launcher_journalled(&self, install: &Path) -> Result<(), launcher::ProcessError> {
@@ -192,6 +205,10 @@ impl Core {
         let mut gone_since: Option<Instant> = None;
         loop {
             self.tick();
+            if self.cancel.load(Ordering::SeqCst) {
+                wait.end(WaitEnd::Cancelled);
+                return None;
+            }
             let outcome = self.events_since(seq0).into_iter().find(|e| match e {
                 LauncherEvent::LoggedIn { id } => {
                     let inner = lock(&self.inner);
@@ -254,6 +271,10 @@ impl Core {
             .flatten();
         let success =
             matches!(&outcome, Some(LauncherEvent::LoggedIn { id: logged }) if logged == &id);
+        if self.cancel.load(Ordering::SeqCst) {
+            self.finish_operation(false);
+            return;
+        }
         self.set_phase(Phase::Finishing);
         {
             let mut inner = lock(&self.inner);
@@ -352,6 +373,17 @@ impl Core {
             outcome
         });
         // Joining the hiding loop above prevents it from hiding a revealed window.
+        if self.cancel.load(Ordering::SeqCst) {
+            self.tick();
+            let stop = {
+                let inner = lock(&self.inner);
+                inner.operation.as_ref().is_some_and(|op| op.hidden_started
+                    && !inner.game_pids.iter().any(|pid| !op.previous_game_pids.contains(pid)))
+            };
+            if stop { let _ = self.stop_launcher_journalled(&install); self.tick(); }
+            self.finish_operation(false);
+            return;
+        }
         if outcome != Some("game_started") {
             self.processes.show_windows(&install);
         } else if !reuse && self.processes.launcher_running(&install) {
@@ -397,6 +429,7 @@ impl Core {
             }
         }
         self.tick();
+        if self.cancel.load(Ordering::SeqCst) { return None; }
         {
             let inner = lock(&self.inner);
             if !inner.launcher_running
@@ -424,6 +457,10 @@ impl Core {
         let previous = lock(&self.inner).operation.as_ref().map(|op| op.previous_game_pids.clone()).unwrap_or_default();
         let game_pid = loop {
             self.tick();
+            if self.cancel.load(Ordering::SeqCst) {
+                wait.end(WaitEnd::Cancelled);
+                return None;
+            }
             if let Some(pid) = lock(&self.inner).game_pids.iter().copied().find(|pid| !previous.contains(pid)) {
                 wait.end(WaitEnd::Event);
                 break pid;
@@ -447,6 +484,7 @@ impl Core {
             let deadline = Instant::now() + self.timing.game_settle;
             let mut wait = self.journal.wait(WaitFor::GameSettle, Some(self.timing.game_settle));
             while Instant::now() < deadline {
+                if self.cancel.load(Ordering::SeqCst) { wait.end(WaitEnd::Cancelled); return None; }
                 self.pause();
                 self.tick();
             }
@@ -462,6 +500,7 @@ impl Core {
         let mut wait = self.journal.wait(WaitFor::GameHandover, Some(self.timing.game_handover));
         loop {
             self.tick();
+            if self.cancel.load(Ordering::SeqCst) { wait.end(WaitEnd::Cancelled); return false; }
             let inner = lock(&self.inner);
             if !inner.launcher_running { wait.end(WaitEnd::Event); return false; }
             if !inner.game_pids.contains(&pid) { wait.end(WaitEnd::Gone); return false; }
@@ -476,6 +515,7 @@ impl Core {
         let mut wait = self.journal.wait(WaitFor::HandoverPause, Some(bound));
         loop {
             self.tick();
+            if self.cancel.load(Ordering::SeqCst) { wait.end(WaitEnd::Cancelled); return false; }
             let inner = lock(&self.inner);
             if !inner.launcher_running { wait.end(WaitEnd::Event); return false; }
             if !inner.game_pids.contains(&pid) { wait.end(WaitEnd::Gone); return false; }
@@ -609,10 +649,12 @@ impl Core {
     }
 
     pub fn cancel_operation(&self) {
-        let cancellable = lock(&self.inner)
+        let inner = lock(&self.inner);
+        let cancellable = inner
             .operation
             .as_ref()
-            .is_some_and(|o| o.kind == OpKind::Add && o.phase == Phase::WaitingLogin);
+            .is_some_and(|o| if o.kind == OpKind::Add { o.phase == Phase::WaitingLogin }
+                else { o.began.elapsed() >= self.timing.cancel_guard });
         if cancellable {
             self.cancel.store(true, Ordering::SeqCst);
         }

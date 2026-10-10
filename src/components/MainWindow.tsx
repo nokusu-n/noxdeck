@@ -151,6 +151,8 @@ export function MainWindow({ state, api, controls, initial }: {
                 account={a}
                 loggingIn={state.operation?.kind !== "add" && state.operation?.accountId === a.id}
                 phase={state.operation && state.operation.kind !== "add" && state.operation.accountId === a.id ? state.operation.phase : null}
+                operationKind={state.operation?.kind !== "add" ? state.operation?.kind : null}
+                onCancel={() => api.cancelOperation()}
                 busy={busy}
                 launcherFound={found}
                 showGameStart={state.settings.showGameStart}

@@ -25,25 +25,29 @@ pub fn menu(state: &State) -> Vec<TrayItem> {
     let mut accounts: Vec<_> = state.accounts.iter().collect();
     accounts.sort_by(|a, b| b.last_login_at.cmp(&a.last_login_at));
     for a in accounts.into_iter().take(5) {
+        let cancelling = state.operation.as_ref().is_some_and(|op| op.account_id.as_deref() == Some(&a.id) && op.cancellable);
         let mut label = a
             .battletag
             .as_deref()
             .or(a.email.as_deref())
             .unwrap_or("—")
             .to_owned();
-        if a.is_in_game {
+        if cancelling {
+            label = match state.lang { Language::Ru => "Отмена", Language::En => "Cancel", Language::It => "Annulla" }.into();
+        }
+        if !cancelling && a.is_in_game {
             label.push_str(in_game);
-        } else if a.is_current && !state.settings.show_game_start {
+        } else if !cancelling && a.is_current && !state.settings.show_game_start {
             label.push_str(in_launcher);
         }
         items.push(TrayItem {
             id: format!("acc-{}", a.id),
             label,
-            enabled: state.operation.is_none()
+            enabled: cancelling || (state.operation.is_none()
                 && state.launcher != LauncherKind::NotFound
                 && a.email.is_some()
                 && (state.settings.show_game_start || !a.is_in_game)
-                && (state.settings.show_game_start || !a.is_current),
+                && (state.settings.show_game_start || !a.is_current)),
         });
     }
     items.push(TrayItem {
@@ -62,6 +66,10 @@ pub fn click(core: &Arc<Core>, item: &str) {
             let Some(id) = item.strip_prefix("acc-") else {
                 return;
             };
+            if core.state().operation.as_ref().is_some_and(|op| op.account_id.as_deref() == Some(id) && op.cancellable) {
+                core.cancel_operation();
+                return;
+            }
             let result = if core.state().settings.show_game_start {
                 core.start_game(id, false)
             } else {

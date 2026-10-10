@@ -47,6 +47,7 @@ pub struct Timing {
     pub hide_interval: Duration,
     pub pid_refresh: Duration,
     pub ratings_interval: Duration,
+    pub cancel_guard: Duration,
 }
 
 impl Default for Timing {
@@ -66,6 +67,7 @@ impl Default for Timing {
             hide_interval: Duration::from_millis(10),
             pid_refresh: Duration::from_millis(250),
             ratings_interval: Duration::from_secs(30 * 60),
+            cancel_guard: Duration::from_secs(1),
         }
     }
 }
@@ -78,7 +80,7 @@ impl Timing {
             ("game_timeout", self.game_timeout), ("game_settle", self.game_settle),
             ("game_handover", self.game_handover), ("handover_pause", self.handover_pause),
             ("hide_interval", self.hide_interval), ("pid_refresh", self.pid_refresh),
-            ("ratings_interval", self.ratings_interval)]
+            ("ratings_interval", self.ratings_interval), ("cancel_guard", self.cancel_guard)]
     }
     /// The defaults, with `NOXDECK_POLL_MS`, `NOXDECK_STAND_MS`, `NOXDECK_START_TIMEOUT_MS`
     /// `NOXDECK_GONE_GRACE_MS`, `NOXDECK_GAME_TIMEOUT_MS`, `NOXDECK_GAME_SETTLE_MS`
@@ -239,6 +241,8 @@ pub(crate) struct Operation {
     pub account_id: Option<String>,
     pub phase: Phase,
     pub previous_game_pids: Vec<u32>,
+    pub began: Instant,
+    pub hidden_started: bool,
 }
 
 pub(crate) struct Inner {

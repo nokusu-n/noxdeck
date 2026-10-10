@@ -38,6 +38,7 @@ pub fn fast() -> Timing {
         hide_interval: Duration::from_millis(10),
         pid_refresh: Duration::from_millis(250),
         ratings_interval: Duration::from_secs(1800),
+        cancel_guard: Duration::from_millis(40),
     }
 }
 

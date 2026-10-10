@@ -207,7 +207,7 @@ impl Core {
                 kind: o.kind,
                 account_id: o.account_id.clone(),
                 phase: o.phase,
-                cancellable: o.kind == OpKind::Add && o.phase == Phase::WaitingLogin,
+                cancellable: o.kind != OpKind::Add || o.phase == Phase::WaitingLogin,
             }),
             accounts,
             sort: inner.settings.sort,

@@ -12,6 +12,8 @@ type Props = {
   loggingIn: boolean;
   /** The step of the action running on this record, if one is. */
   phase: Phase | null;
+  operationKind?: "start" | "game" | null;
+  onCancel?: () => void;
   /** Some launcher action runs, so no other starts. */
   busy: boolean;
   launcherFound: boolean;
@@ -46,7 +48,7 @@ function lookOf(a: Account, loggingIn: boolean, phase: Phase | null, started: bo
   return { id: "ready", kind: "idle", mark: "m-idle", chip: null };
 }
 
-export function AccountRecord({ account: a, loggingIn, phase, busy, launcherFound, showGameStart, showRatings, autoRatings, pickingRole, onPickRating, onStart, onDelete, onGame, preview }: Props) {
+export function AccountRecord({ account: a, loggingIn, phase, operationKind, onCancel, busy, launcherFound, showGameStart, showRatings, autoRatings, pickingRole, onPickRating, onStart, onDelete, onGame, preview }: Props) {
   const [copied, setCopied] = useState(preview === "copied");
   const started = a.lastOutcome === "game_started";
   const look = lookOf(a, loggingIn, phase, started);
@@ -94,12 +96,16 @@ export function AccountRecord({ account: a, loggingIn, phase, busy, launcherFoun
       </div>
       <Ratings account={a} shown={showRatings} autoRatings={autoRatings} openRole={pickingRole} onOpen={onPickRating} />
       <div className="c-acts">
-        {a.isCurrent ? (
+        {loggingIn && operationKind === "start" ? (
+          <button data-testid={`start-${a.id}`} className={`btn btn--act${wide}`} onClick={onCancel}>{t("cancel")}</button>
+        ) : a.isCurrent ? (
           <button data-testid={`current-${a.id}`} className={`btn btn--act is-on${wide}`} disabled aria-current="true" title={t("openInLauncherTip")}>{t("start")}</button>
         ) : (
           <button data-testid={`start-${a.id}`} className={`btn btn--act${wide}`} disabled={startBlocked} title={reason ?? t("startTip")} onClick={onStart}>{t("start")}</button>
         )}
-        {showGameStart && (a.isInGame ? (
+        {showGameStart && (loggingIn && operationKind === "game" ? (
+          <button data-testid={`${a.isInGame ? "ingame" : "game"}-${a.id}`} className="btn btn--act" onClick={onCancel}>{t("cancel")}</button>
+        ) : a.isInGame ? (
           <button data-testid={`ingame-${a.id}`} className="btn btn--act is-on" disabled={startBlocked} aria-current="true" title={reason ?? t("inGameTip")} onClick={onGame}><OverwatchMark />{t("startGame")}</button>
         ) : (
           <button data-testid={`game-${a.id}`} className="btn btn--act" disabled={startBlocked} title={reason ?? t("startGameTip")} onClick={onGame}><OverwatchMark />{t("startGame")}</button>
