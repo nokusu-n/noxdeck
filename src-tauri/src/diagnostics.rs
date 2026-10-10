@@ -52,6 +52,7 @@ pub enum Step {
     Window(Window),
     WindowHidden { window: u32, count: u32 },
     SettingChanged { name: &'static str, value: serde_json::Value },
+    AccountGameChanged { account: u32, game: crate::registry::Game },
 }
 struct Entry { wall: SystemTime, at: Instant, step: Step }
 #[derive(Default)]
@@ -151,6 +152,7 @@ fn step_text(step: &Step) -> String {
         Step::OperationEnded { kind, account, outcome } => format!("Operation ended: {kind:?}, {}, {outcome:?}", account_text(*account)),
         Step::LauncherEvent { event, account, historic } => format!("Launcher event: {event:?}, {}, historic={historic}", account_text(*account)),
         Step::SettingChanged { name, value } => format!("Setting changed: {name}={value}"),
+        Step::AccountGameChanged { account, game } => format!("Account game changed: account {account}, {game:?}"),
         Step::WindowHidden { window, count } => format!("Launcher window {window} hidden: count={count}"),
         Step::LauncherStopProcesses { selected, executables } => {
             let names: Vec<_> = executables.iter().map(|(exe, count)| format!("{}={count}", exe.file_name())).collect();

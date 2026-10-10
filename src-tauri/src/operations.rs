@@ -675,6 +675,7 @@ impl Core {
                 a.last_login_at = now;
             }
             None => inner.registry.accounts.push(Account {
+                game: crate::registry::Game::None,
                 ratings: Default::default(),
                 id: id.to_owned(),
                 email,
@@ -722,6 +723,7 @@ impl Core {
             return Err(Refusal::AlreadyListed);
         }
         inner.registry.accounts.push(Account {
+            game: crate::registry::Game::None,
             ratings: Default::default(),
             email: config::first_saved_name(&self.paths.config_file()),
             battletag: cache::battle_tag(&self.paths.cache_db(), &id),
@@ -737,6 +739,23 @@ impl Core {
     }
 
     // ---- the list -----------------------------------------------------------
+
+    pub fn set_account_game(&self, id: &str, game: crate::registry::Game) -> Result<(), Refusal> {
+        self.tick();
+        let mut inner = lock(&self.inner);
+        if inner.operation.as_ref().is_some_and(|op| op.account_id.as_deref() == Some(id))
+            || inner.game.confirmed.as_ref().is_some_and(|playing| playing.account_id == id) {
+            return Err(Refusal::GameChangeBlocked);
+        }
+        let account = inner.registry.find_mut(id).ok_or(Refusal::UnknownAccount)?;
+        if account.game == game { return Ok(()); }
+        account.game = game;
+        self.journal.record(Step::AccountGameChanged { account: self.journal.account(id), game });
+        self.save_registry(&inner);
+        drop(inner);
+        self.publish();
+        Ok(())
+    }
 
     pub fn delete_account(&self, id: &str) -> Result<(), Refusal> {
         let mut inner = lock(&self.inner);

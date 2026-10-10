@@ -26,6 +26,8 @@ type Props = {
   onStart: () => void;
   onDelete: () => void;
   onGame: () => void;
+  onPickGame?: (anchor: HTMLElement) => void;
+  pickingGame?: boolean;
   /** The states page keeps a note on screen that fades by itself in the program. */
   preview?: "copied" | "started";
 };
@@ -48,7 +50,7 @@ function lookOf(a: Account, loggingIn: boolean, phase: Phase | null, started: bo
   return { id: "ready", kind: "idle", mark: "m-idle", chip: null };
 }
 
-export function AccountRecord({ account: a, loggingIn, phase, operationKind, onCancel, busy, launcherFound, showGameStart, showRatings, autoRatings, pickingRole, onPickRating, onStart, onDelete, onGame, preview }: Props) {
+export function AccountRecord({ account: a, loggingIn, phase, operationKind, onCancel, busy, launcherFound, showGameStart, showRatings, autoRatings, pickingRole, onPickRating, onStart, onDelete, onGame, onPickGame, pickingGame, preview }: Props) {
   const [copied, setCopied] = useState(preview === "copied");
   const started = a.lastOutcome === "game_started";
   const look = lookOf(a, loggingIn, phase, started);
@@ -89,10 +91,13 @@ export function AccountRecord({ account: a, loggingIn, phase, operationKind, onC
             <span data-testid={`email-${a.id}`} className={a.email ? "mail" : "mail mail--missing"} title={a.email ?? t("noEmail")}>{a.email ?? t("noEmail")}</span>
           </div>
         </div>
+        <div className="c-tools">
+        <button data-testid={`game-settings-${a.id}`} className="btn btn--icon" title={t("gameSettings")} aria-label={t("gameSettings")} aria-haspopup="menu" aria-expanded={!!pickingGame} onClick={e => onPickGame?.(e.currentTarget)}><Icon name="i-gear" size={16} /></button>
         <button data-testid={`delete-${a.id}`} className="btn btn--icon btn-del" disabled={busy} title={t("delete")} onClick={onDelete}>
           <Icon name="i-trash" size={16} />
           <span className="sr-only">{t("delete")}</span>
         </button>
+        </div>
       </div>
       <Ratings account={a} shown={showRatings} autoRatings={autoRatings} openRole={pickingRole} onOpen={onPickRating} />
       <div className="c-acts">

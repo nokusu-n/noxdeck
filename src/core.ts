@@ -16,7 +16,10 @@ export type Refusal =
   | "already_open"
   | "game_running"
   | "game_not_closable"
-  | "unknown_account";
+  | "unknown_account"
+  | "game_change_blocked";
+export type Game = "overwatch" | "world_of_warcraft" | "world_of_warcraft_forever" | "call_of_duty" | "none";
+export const games: Exclude<Game, "none">[] = ["overwatch", "world_of_warcraft", "world_of_warcraft_forever", "call_of_duty"];
 
 export type LoginState = "ready" | "password_wanted" | "code_wanted";
 export type Sort = "last_login" | "battletag";
@@ -27,6 +30,7 @@ export type RatingValue = { rank: Rank | "placement"; division?: number };
 export type Rating = RatingValue & { source: "manual" | "service" };
 
 export type Account = {
+  game: Game;
   ratings: Record<Role, Rating | null>;
   id: string;
   battletag: string | null;
@@ -83,6 +87,7 @@ export const core = {
   setCloseLauncher: (value: boolean) => call("set_close_launcher", { value }),
   openRepository: () => call("open_repository"),
   setRating: (id: string, role: Role, value: RatingValue | null) => call("set_rating", { id, role, value }),
+  setAccountGame: (id: string, game: Game) => call("set_account_game", { id, game }),
   setShowRatings: (value: boolean) => call("set_show_ratings", { value }),
   setAutoRatings: (value: boolean) => call("set_auto_ratings", { value }),
   syncRatings: () => call("sync_ratings"),

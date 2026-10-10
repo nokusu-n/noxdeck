@@ -4,6 +4,8 @@ import { SettingsScreen } from "./SettingsScreen";
 import { DeleteDialog, GameDialog, ReminderDialog } from "./Dialogs";
 import { Banner, EmptyState, OperationStatus, WaitPanel } from "./Notices";
 import { RatingPicker } from "./RatingPicker";
+import { GamePicker } from "./GamePicker";
+import type { Game } from "../core";
 import { SettingsHead, Toolbar } from "./Toolbar";
 import { TitleBar } from "./TitleBar";
 import type { core, RatingValue, Refusal, Result, Role, State } from "../core";
@@ -33,6 +35,7 @@ export function MainWindow({ state, api, controls, initial }: {
   const [dialog, setDialog] = useState<Dialog | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(initial?.settingsOpen ?? false);
   const [picking, setPicking] = useState<Picking | null>(null);
+  const [gamePicking, setGamePicking] = useState<{ id: string; anchor: HTMLElement } | null>(null);
   const root = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -87,6 +90,13 @@ export function MainWindow({ state, api, controls, initial }: {
   const add = state.operation?.kind === "add";
   const gameQuestionId = state.ask?.accountId ?? (dialog?.kind === "game" ? dialog.id : null);
   const pickedAccount = picking ? state.accounts.find((a) => a.id === picking.id) : undefined;
+  const gamePickedAccount = gamePicking ? state.accounts.find((a) => a.id === gamePicking.id) : undefined;
+  async function pickGame(game: Game) {
+    if (!gamePicking) return;
+    const id = gamePicking.id;
+    setGamePicking(null);
+    await run(() => api.setAccountGame(id, game));
+  }
   const sync = state.settings.showRatings && state.settings.autoRatings
     ? { busy: state.syncing, onClick: () => run(api.syncRatings) }
     : null;
@@ -97,7 +107,7 @@ export function MainWindow({ state, api, controls, initial }: {
         version={state.version}
         sync={sync}
         settingsOpen={settingsOpen}
-        onSettings={() => { setPicking(null); setSettingsOpen(true); }}
+        onSettings={() => { setPicking(null); setGamePicking(null); setSettingsOpen(true); }}
         controls={controls}
       />
       {settingsOpen ? (
@@ -160,6 +170,8 @@ export function MainWindow({ state, api, controls, initial }: {
                 autoRatings={state.settings.autoRatings}
                 pickingRole={picking?.id === a.id ? picking.role : null}
                 onPickRating={(role, anchor) => openPicker(a.id, role, anchor)}
+                pickingGame={gamePicking?.id === a.id}
+                onPickGame={anchor => { setPicking(null); setGamePicking(now => now?.id === a.id ? null : { id: a.id, anchor }); }}
                 onStart={() =>
                   state.dismissed.logoutWarning ? run(() => api.startLauncher(a.id)) : setDialog({ kind: "logout", id: a.id })
                 }
@@ -174,6 +186,7 @@ export function MainWindow({ state, api, controls, initial }: {
       {picking && pickedAccount && root.current && (
         <RatingPicker account={pickedAccount} role={picking.role} anchor={picking.anchor} container={root.current} onPick={pick} onClose={() => setPicking(null)} />
       )}
+      {gamePicking && gamePickedAccount && root.current && <GamePicker account={gamePickedAccount} anchor={gamePicking.anchor} container={root.current} disabled={gamePickedAccount.isInGame || state.operation?.accountId === gamePickedAccount.id} onPick={pickGame} onClose={() => setGamePicking(null)} />}
 
       {dialog?.kind === "remind" && (
         <ReminderDialog

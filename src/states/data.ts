@@ -6,7 +6,7 @@ const man = (rank: Rank, division: number): Rating => ({ rank, division, source:
 const placement: Rating = { rank: "placement", source: "manual" };
 
 const account = (id: string, battletag: string, email: string | null, over: Partial<Account>, ratings: Account["ratings"]): Account => ({
-  id, battletag, email, loginState: "ready", lastLoginAt: "2026-10-05T12:00:00Z", isCurrent: false, isInGame: false, lastOutcome: null, ratings, ...over,
+  game: "overwatch", id, battletag, email, loginState: "ready", lastLoginAt: "2026-10-05T12:00:00Z", isCurrent: false, isInGame: false, lastOutcome: null, ratings, ...over,
 });
 
 /** The nine accounts the main window shows: every kind of state and every shape of rating. */

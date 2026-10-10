@@ -132,6 +132,7 @@ pub enum Refusal {
     UnknownAccount,
     GameRunning,
     GameNotClosable,
+    GameChangeBlocked,
 }
 
 #[derive(Serialize, Clone, Copy, Debug, PartialEq, Eq)]
@@ -174,6 +175,7 @@ pub struct OperationView {
 #[derive(Serialize, Clone, Debug, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct AccountView {
+    pub game: registry::Game,
     pub ratings: ratings::Ratings,
     pub id: String,
     pub battletag: Option<String>,
@@ -389,8 +391,9 @@ impl Core {
         ratings: ratings::overfast::Client,
     ) -> Arc<Core> {
         let (ratings_trigger, receiver) = std::sync::mpsc::sync_channel(1);
-        let (registry, reset_a) = Registry::load(&paths.data.join("accounts.json"));
+        let (mut registry, reset_a) = Registry::load(&paths.data.join("accounts.json"));
         let (settings, reset_s) = Settings::load(&paths.data.join("settings.json"));
+        if registry.migrate(settings.show_game_start) { let _ = registry.save(&paths.data.join("accounts.json")); }
         let (game, reset_g) = GameTracking::load(&paths.data.join("state.json"));
         let journal = Arc::new(diagnostics::Journal::default());
         journal.settings(&settings, shell.autostart().unwrap_or(false));
@@ -506,6 +509,10 @@ mod commands {
     #[tauri::command(async)]
     pub fn add_account(core: Shared) -> Result<(), Refusal> {
         core.inner().add_account()
+    }
+    #[tauri::command]
+    pub fn set_account_game(core: Shared, id: String, game: registry::Game) -> Result<(), Refusal> {
+        core.set_account_game(&id, game)
     }
 
     #[tauri::command]
@@ -660,6 +667,7 @@ pub fn run() {
             commands::save_diagnostics,
             commands::open_repository,
             commands::set_rating,
+            commands::set_account_game,
             commands::add_account,
             commands::cancel_operation,
             commands::save_current,

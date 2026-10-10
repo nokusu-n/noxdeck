@@ -167,6 +167,7 @@ impl Core {
             .accounts
             .iter()
             .map(|a| AccountView {
+                game: a.game,
                 ratings: a.ratings.clone(),
                 id: a.id.clone(),
                 battletag: a.battletag.clone(),

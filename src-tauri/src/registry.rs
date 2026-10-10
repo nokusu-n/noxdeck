@@ -82,6 +82,8 @@ pub enum LoginState {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct Account {
     #[serde(default)]
+    pub game: Game,
+    #[serde(default)]
     pub ratings: crate::ratings::Ratings,
     pub id: String,
     pub email: Option<String>,
@@ -96,14 +98,25 @@ pub struct Registry {
     pub accounts: Vec<Account>,
 }
 
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum Game {
+    #[default]
+    Overwatch,
+    WorldOfWarcraft,
+    WorldOfWarcraftForever,
+    CallOfDuty,
+    None,
+}
+
 impl Default for Registry {
     fn default() -> Self {
-        Registry { schema: 1, accounts: Vec::new() }
+        Registry { schema: 2, accounts: Vec::new() }
     }
 }
 
 fn valid(r: &Registry) -> bool {
-    r.schema == 1
+    matches!(r.schema, 1 | 2)
         && r.accounts.iter().enumerate().all(|(i, a)| {
             a.id.len() == 8
                 && a.ratings.valid()
@@ -113,6 +126,12 @@ fn valid(r: &Registry) -> bool {
 }
 
 impl Registry {
+    pub fn migrate(&mut self, show_game_start: bool) -> bool {
+        if self.schema != 1 { return false; }
+        for account in &mut self.accounts { account.game = if show_game_start { Game::Overwatch } else { Game::None }; }
+        self.schema = 2;
+        true
+    }
     /// The stored list, and whether a broken file was set aside to get it.
     pub fn load(path: &Path) -> (Registry, bool) {
         match load::<Registry>(path) {

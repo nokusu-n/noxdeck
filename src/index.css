@@ -74,6 +74,10 @@ body { margin: 0; overflow: hidden; background: var(--ground); color: var(--text
   .btn--icon { width: 32px; padding: 0; background: none; color: var(--text-3); }
   .btn--icon:hover { background: var(--raised); color: var(--text); }
   .btn-del:hover { color: var(--bad-text); background: rgba(221, 0, 0, .14); }
+  .c-tools { display: flex; align-items: center; }
+  .game-picker { width: 300px; }
+  .game-option { width: 100%; justify-content: flex-start; margin: 2px 0; }
+  .game-option.is-on { background: var(--accent-soft); color: var(--accent-hi); }
   .btn:focus-visible, .tag:focus-visible, .rt:focus-visible, .tb-sync:focus-visible, .tb-btn:focus-visible, .wc:focus-visible, .pk-div:focus-visible, .chip-btn:focus-visible { outline: 2px solid var(--accent-hi); outline-offset: 2px; }
   .back { padding-left: 10px; }
   .ow { flex: none; }
@@ -94,7 +98,7 @@ body { margin: 0; overflow: hidden; background: var(--ground); color: var(--text
   .card { display: flex; flex-direction: column; gap: 10px; padding: 12px 12px 12px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; transition: border-color .15s ease-out; }
   .card:hover { border-color: var(--line-2); }
   .card.is-live { border-color: rgba(108, 219, 0, .45); }
-  .c-top { display: grid; grid-template-columns: 16px minmax(0, 1fr) 28px; column-gap: 10px; align-items: start; }
+  .c-top { display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; column-gap: 10px; align-items: start; }
   .c-top .mark { padding-top: 3px; }
   .c-top .btn-del { width: 28px; height: 28px; margin: -3px -3px 0 0; }
   .mark { display: grid; place-items: center; }
