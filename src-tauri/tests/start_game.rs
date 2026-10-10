@@ -371,7 +371,7 @@ fn assert_revealed(f: &Fake, core: &Core) {
     assert!(!f.procs.is_hidden());
     assert_eq!(
         f.procs.calls().last().map(String::as_str),
-        Some("show_windows_no_activate")
+        Some("show_windows")
     );
     assert!(!core.state().game_running);
     assert_ne!(core.state().launcher, LauncherKind::Closed);
