@@ -164,6 +164,7 @@ async function checkLanguage(lang) {
     "sort-battletag": ["sortBattletag"], "settings-open": ["settings"], "settings": ["sectionProgram", "sectionOverwatch", "language"],
     "settings-back": ["back"], "settings-after-title": ["afterStart"], "settings-language-title": ["language"],
     "developed-by": ["developedBy"], "ratings-source-note": ["ratingsSourceNote"], "message": ["r_no_saved_login"],
+    "save-diagnostics": ["saveDiagnostics"], "diagnostics-note": ["diagnosticsNote"],
     "remind-dialog": ["remindTitle", "remindBody", "dontShowAgain"], "remind-continue": ["continue"],
     "logout-dialog": ["logoutTitle", "logoutBody", "dontShowAgain"], "logout-continue": ["continue"],
     "waiting": ["waitingTitle", "waitingBody"], "cancel": ["cancel"], "delete-dialog": ["deleteTitle", "deleteBody"],
@@ -215,6 +216,7 @@ async function checkLanguage(lang) {
   }
   await h.click("settings-open");
   await see(["settings", "settings-back", "settings-after-title", "settings-language-title", "developed-by", "ratings-source-note"]);
+  await see(["save-diagnostics", "diagnostics-note"]);
   assert.ok((await h.text("developed-by")).includes("Nokusu.dev"));
   const repository = await h.el("open-repository");
   assert.ok(await repository.isExisting());
@@ -334,7 +336,7 @@ for (const lang of ["en", "ru", "it"]) {
   test(`all languages: every element of the contract is there and in ${lang}`, async () => {
     const seen = await checkLanguage(lang);
     const contract = ["empty-state", "add-account", "save-current", "message", "remind-dialog", "remind-dont-show", "remind-continue", "waiting", "cancel", "sort-last-login", "sort-battletag", "delete-dialog", "delete-confirm", "delete-cancel", "logout-dialog", "logout-dont-show", "logout-continue", "launcher-not-found", "version", "settings-open", "settings", "settings-back", "set-autostart", "set-after-stay", "set-after-tray", "set-after-close", "set-show-game", "set-lang-ru", "set-lang-en"];
-    for (const id of [...contract, "set-lang-it"]) assert.ok(seen.has(id), `${id} was seen`);
+    for (const id of [...contract, "set-lang-it", "save-diagnostics", "diagnostics-note"]) assert.ok(seen.has(id), `${id} was seen`);
   });
 }
 

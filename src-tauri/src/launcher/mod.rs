@@ -87,19 +87,23 @@ pub enum LauncherEvent {
 pub enum ProcessError {
     /// The process exists but this user may not stop it (the launcher is elevated).
     AccessDenied,
+    System(i32),
     Other(String),
 }
 
 /// Launcher and game flags read from the same process list.
 pub struct ProcessSnapshot {
     pub launcher_running: bool,
+    pub launcher_count: usize,
     pub game_running: bool,
+    pub game_window: bool,
     pub game_pids: Vec<u32>,
 }
 
 /// Process control, limited to executables inside the install directory (and the
 /// game by name). Tests substitute a recording implementation.
 pub trait Processes: Send + Sync {
+    fn set_journal(&self, _journal: std::sync::Arc<crate::diagnostics::Journal>) {}
     /// Answer both watcher questions from one process list.
     fn snapshot(&self, install: Option<&Path>, exe_name: &str) -> ProcessSnapshot;
     fn launcher_running(&self, install: &Path) -> bool;

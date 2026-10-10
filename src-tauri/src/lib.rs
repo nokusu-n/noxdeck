@@ -1,6 +1,7 @@
 //! Noxdeck core: shared state, the `State` the interface renders, the commands.
 
 mod game_state;
+pub mod diagnostics;
 pub mod launcher;
 pub mod operations;
 pub mod registry;
@@ -66,6 +67,14 @@ impl Default for Timing {
 }
 
 impl Timing {
+    pub fn values(&self) -> Vec<(&'static str, Duration)> {
+        vec![("poll", self.poll), ("stand", self.stand), ("stop", self.stop),
+            ("start_timeout", self.start_timeout), ("gone_grace", self.gone_grace),
+            ("tag_wait", self.tag_wait), ("email_wait", self.email_wait),
+            ("game_timeout", self.game_timeout), ("game_settle", self.game_settle),
+            ("hide_interval", self.hide_interval), ("pid_refresh", self.pid_refresh),
+            ("ratings_interval", self.ratings_interval)]
+    }
     /// The defaults, with `NOXDECK_POLL_MS`, `NOXDECK_STAND_MS`, `NOXDECK_START_TIMEOUT_MS`
     /// `NOXDECK_GONE_GRACE_MS`, `NOXDECK_GAME_TIMEOUT_MS`, `NOXDECK_GAME_SETTLE_MS`
     /// and `NOXDECK_HIDE_INTERVAL_MS` available to the interface tests.
@@ -246,6 +255,7 @@ pub(crate) struct Inner {
 }
 
 pub struct Core {
+    pub journal: Arc<diagnostics::Journal>,
     pub(crate) ratings_trigger: std::sync::mpsc::SyncSender<ratings::Refresh>,
     pub paths: LauncherPaths,
     pub timing: Timing,
@@ -355,7 +365,11 @@ impl Core {
         let (registry, reset_a) = Registry::load(&paths.data.join("accounts.json"));
         let (settings, reset_s) = Settings::load(&paths.data.join("settings.json"));
         let (game, reset_g) = GameTracking::load(&paths.data.join("state.json"));
+        let journal = Arc::new(diagnostics::Journal::default());
+        for account in &registry.accounts { journal.account(&account.id); }
+        processes.set_journal(journal.clone());
         let core = Arc::new(Core {
+            journal,
             ratings_trigger,
             tail: Mutex::new(LogTail::new(timing.stand)),
             inner: Mutex::new(Inner {
@@ -433,6 +447,11 @@ mod commands {
     use tauri::State as Managed;
 
     type Shared<'a> = Managed<'a, Arc<Core>>;
+
+    #[tauri::command(async)]
+    pub fn save_diagnostics(core: Shared) -> diagnostics::SaveResult {
+        core.save_diagnostics()
+    }
 
     #[tauri::command]
     pub fn get_state(core: Shared) -> State {
@@ -601,6 +620,7 @@ pub fn run() {
         .on_window_event(shell::window_event)
         .invoke_handler(tauri::generate_handler![
             commands::get_state,
+            commands::save_diagnostics,
             commands::open_repository,
             commands::set_rating,
             commands::add_account,

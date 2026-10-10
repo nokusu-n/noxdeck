@@ -142,6 +142,12 @@ fn the_windows_build_uses_only_the_chosen_http_client_and_platform_tls() {
 
 #[test]
 fn the_window_may_only_talk_to_the_core() {
+    let boundary = fs::read_to_string(manifest().join("../src/core.ts")).unwrap();
+    let mut commands: Vec<_> = boundary.lines().filter(|line| line.contains("=> call")).map(|line| line.rsplit_once("(\"").unwrap().1.split('"').next().unwrap()).collect();
+    commands.sort_unstable();
+    let mut permitted = vec!["open_repository", "set_rating", "set_show_ratings", "set_auto_ratings", "sync_ratings", "add_account", "cancel_operation", "save_current", "start_launcher", "start_game", "delete_account", "set_sort", "dismiss", "acknowledge_notice", "clear_ask", "set_autostart", "set_after_start", "set_show_game_start", "set_close_launcher", "set_language", "save_diagnostics"];
+    permitted.sort_unstable();
+    assert_eq!(commands, permitted, "only the pinned core commands cross the boundary");
     let cap = fs::read_to_string(manifest().join("capabilities").join("default.json")).unwrap();
     let cap: serde_json::Value = serde_json::from_str(&cap).unwrap();
     // The window's own controls for the custom title bar, and nothing else.

@@ -1,9 +1,10 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { core, Result, State } from "../core";
 import { t } from "../i18n";
 import { Icon } from "../ui/Icon";
+import { Banner } from "./Notices";
 
-type Api = Pick<typeof core, "setAutostart" | "setAfterStart" | "setShowGameStart" | "setCloseLauncher" | "setShowRatings" | "setAutoRatings" | "setLanguage" | "openRepository">;
+type Api = Pick<typeof core, "setAutostart" | "setAfterStart" | "setShowGameStart" | "setCloseLauncher" | "setShowRatings" | "setAutoRatings" | "setLanguage" | "openRepository" | "saveDiagnostics">;
 
 function Switch({ testid, label, note, noteTestid, checked, onChange }: {
   testid: string; label: string; note?: string; noteTestid?: string; checked: boolean; onChange: (value: boolean) => void;
@@ -44,6 +45,16 @@ export function SettingsScreen({ state, api, run }: {
   state: State; api: Api; run: (action: () => Promise<Result<unknown>>) => Promise<void>;
 }) {
   const s = state.settings;
+  const [saving, setSaving] = useState(false);
+  const [diagnostics, setDiagnostics] = useState<"saved" | "failed" | null>(null);
+  async function saveDiagnostics() {
+    setSaving(true);
+    try {
+      const result = await api.saveDiagnostics();
+      if (!result.ok || result.value === "failed") setDiagnostics("failed");
+      else if (result.value === "saved") setDiagnostics("saved");
+    } finally { setSaving(false); }
+  }
   return (
     <section data-testid="settings" className="set">
       <Group title={t("sectionProgram")}>
@@ -76,6 +87,11 @@ export function SettingsScreen({ state, api, run }: {
         <Switch testid="set-show-ratings" label={t("showRatings")} checked={s.showRatings} onChange={(v) => run(() => api.setShowRatings(v))} />
         <Switch testid="set-auto-ratings" label={t("autoRatings")} note={t("ratingsSourceNote")} noteTestid="ratings-source-note" checked={s.autoRatings} onChange={(v) => run(() => api.setAutoRatings(v))} />
       </Group>
+      <div className="set-row set-row--stack">
+        <button data-testid="save-diagnostics" className="btn" disabled={saving} onClick={saveDiagnostics} aria-describedby="diagnostics-note">{t("saveDiagnostics")}</button>
+        <span id="diagnostics-note" data-testid="diagnostics-note" className="set-note">{t("diagnosticsNote")}</span>
+      </div>
+      {diagnostics && <Banner testid="diagnostics-result" tone={diagnostics === "saved" ? "ok" : "bad"}>{t(diagnostics === "saved" ? "diagnosticsSaved" : "diagnosticsFailed")}</Banner>}
       <footer className="set-foot">
         <p data-testid="developed-by">{t("developedBy")}</p>
         <button data-testid="open-repository" className="btn btn--icon" aria-label={t("openRepository")} title={t("openRepository")} onClick={() => run(api.openRepository)}>

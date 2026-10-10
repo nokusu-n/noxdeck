@@ -114,7 +114,9 @@ impl Processes for RecordingProcesses {
         s.queries.push("snapshot");
         ProcessSnapshot {
             launcher_running: install.is_some() && s.running,
+            launcher_count: usize::from(install.is_some() && s.running),
             game_running: s.game,
+            game_window: s.game,
             game_pids: s.game_pids.clone(),
         }
     }

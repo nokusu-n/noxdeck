@@ -17,6 +17,7 @@ impl Core {
         let snapshot = self
             .processes
             .snapshot(install.as_deref(), &self.paths.game_exe);
+        self.journal.snapshot(&snapshot);
         let now = Instant::now();
         let polled = tail.poll(&self.paths.logs_dir(), now);
         {
@@ -73,6 +74,11 @@ impl Core {
 
     /// Returns whether a record changed.
     fn apply(&self, inner: &mut Inner, event: LauncherEvent, historic: bool) -> bool {
+        self.journal.record(diagnostics::Step::LauncherEvent {
+            event: diagnostics::Event::from_launcher(&event),
+            account: if let LauncherEvent::LoggedIn { id } = &event { Some(self.journal.account(id)) } else { None },
+            historic,
+        });
         inner.seq += 1;
         let seq = inner.seq;
         inner.events.push((seq, event.clone()));

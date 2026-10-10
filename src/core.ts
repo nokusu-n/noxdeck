@@ -77,6 +77,7 @@ async function call<T = void>(cmd: string, args?: Record<string, unknown>): Prom
 }
 
 export const core = {
+  saveDiagnostics: () => call<"saved" | "cancelled" | "failed">("save_diagnostics"),
   setCloseLauncher: (value: boolean) => call("set_close_launcher", { value }),
   openRepository: () => call("open_repository"),
   setRating: (id: string, role: Role, value: RatingValue | null) => call("set_rating", { id, role, value }),

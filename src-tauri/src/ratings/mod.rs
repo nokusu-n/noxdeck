@@ -149,8 +149,11 @@ pub(crate) fn spawn(core: &Arc<Core>, client: overfast::Client, receiver: Receiv
                         };
                         drop(core);
                         let Some(tag) = tag else { continue; };
+                        let mut wait = core_wait(&weak);
                         // No core lock or strong reference is held across a network wait.
                         let report = client.fetch(&tag);
+                        if let Some(wait) = &mut wait { wait.end(match &report { overfast::Report::Stop => crate::diagnostics::WaitEnd::Failed, _ => crate::diagnostics::WaitEnd::Event }); }
+                        drop(wait);
                         let Some(core) = weak.upgrade() else { return; };
                         match report {
                             overfast::Report::Stop => { stopped = true; break; },
@@ -172,4 +175,8 @@ pub(crate) fn spawn(core: &Arc<Core>, client: overfast::Client, receiver: Receiv
             }
         }
     });
+}
+
+fn core_wait(core: &std::sync::Weak<Core>) -> Option<crate::diagnostics::Wait> {
+    core.upgrade().map(|core| core.journal.wait(crate::diagnostics::WaitFor::Ratings, Some(overfast::TIMEOUT)))
 }

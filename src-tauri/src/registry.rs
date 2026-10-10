@@ -47,7 +47,11 @@ pub(crate) fn save<T: Serialize>(path: &Path, value: &T) -> io::Result<()> {
 
 /// Current UTC time as `2026-10-09T01:13:12Z`.
 pub fn now_iso() -> String {
-    let secs = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0) as i64;
+    iso_time(SystemTime::now())
+}
+
+pub fn iso_time(time: SystemTime) -> String {
+    let secs = time.duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0) as i64;
     let (days, rem) = (secs.div_euclid(86_400), secs.rem_euclid(86_400));
     // Days since 1970-01-01 to a civil date (Howard Hinnant's algorithm).
     let z = days + 719_468;

@@ -9,9 +9,12 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 use sysinfo::{ProcessRefreshKind, ProcessesToUpdate, System, UpdateKind};
+use crate::diagnostics::{Journal, Step, Window};
+use std::sync::Arc;
 
 #[derive(Default)]
 pub struct RealProcesses {
+    journal: Mutex<Option<Arc<Journal>>>,
     hidden: Mutex<Vec<(usize, u32)>>,
     launcher_ids: Mutex<(PathBuf, Vec<u32>)>,
     refreshing: Mutex<()>,
@@ -20,6 +23,9 @@ pub struct RealProcesses {
 }
 
 impl RealProcesses {
+    fn record(&self, step: Step) {
+        if let Some(journal) = &*self.journal.lock().unwrap_or_else(|e| e.into_inner()) { journal.record(step); }
+    }
     fn restore_windows(&self, install: &Path, command: i32) {
         let allowed = self.launcher_pids(install);
         let mut hidden = self.hidden.lock().unwrap_or_else(|e| e.into_inner());
@@ -32,6 +38,7 @@ impl RealProcesses {
                 unsafe {
                     ShowWindowAsync(window, command);
                 }
+                self.record(Step::Window(if command == 4 { Window::LauncherShownWithoutActivation } else { Window::LauncherShown }));
             }
         }
     }
@@ -80,6 +87,7 @@ extern "system" {
     fn QueryFullProcessImageNameW(process: Hwnd, flags: u32, name: *mut u16, size: *mut u32)
         -> i32;
     fn CloseHandle(handle: Hwnd) -> i32;
+    fn TerminateProcess(process: Hwnd, exit_code: u32) -> i32;
 }
 
 fn executable(pid: u32) -> Option<PathBuf> {
@@ -230,21 +238,35 @@ fn named<'a>(sys: &'a System, exe_name: &str) -> Vec<&'a sysinfo::Process> {
 }
 
 /// Kill every given process; a refusal from the system is "access denied".
-fn kill_all(procs: Vec<&sysinfo::Process>) -> Result<(), ProcessError> {
-    let mut denied = false;
+fn kill_all(procs: Vec<&sysinfo::Process>, mut record: impl FnMut(bool, Option<i32>)) -> Result<(), ProcessError> {
+    let mut failure = None;
     for p in procs {
-        if !p.kill() {
-            denied = true;
-        }
+        let result = kill(p.pid().as_u32());
+        record(result.is_ok(), result.as_ref().err().copied());
+        if let Err(code) = result { failure = Some(code); }
     }
-    if denied {
-        Err(ProcessError::AccessDenied)
-    } else {
-        Ok(())
+    match failure { Some(5) => Err(ProcessError::AccessDenied), Some(code) => Err(ProcessError::System(code)), None => Ok(()) }
+}
+fn kill(pid: u32) -> Result<(), i32> {
+    unsafe {
+        let process = OpenProcess(1, 0, pid);
+        if process.is_null() { return Err(std::io::Error::last_os_error().raw_os_error().unwrap_or(0)); }
+        let ok = TerminateProcess(process, 1) != 0;
+        let error = (!ok).then(|| std::io::Error::last_os_error().raw_os_error().unwrap_or(0));
+        CloseHandle(process);
+        error.map_or(Ok(()), Err)
     }
+}
+fn game_window(pids: &[u32]) -> bool {
+    let mut windows = Vec::<usize>::new();
+    unsafe { EnumWindows(collect_window, &mut windows as *mut _ as isize); }
+    windows.into_iter().any(|w| pids.contains(&owner(w as Hwnd)) && unsafe { IsWindowVisible(w as Hwnd) != 0 })
 }
 
 impl Processes for RealProcesses {
+    fn set_journal(&self, journal: Arc<Journal>) {
+        *self.journal.lock().unwrap_or_else(|e| e.into_inner()) = Some(journal);
+    }
     fn refresh_launcher_pids(&self, install: &Path) {
         let _refresh = self.refreshing.lock().unwrap_or_else(|e| e.into_inner());
         let ids = self.launcher_pids(install);
@@ -266,9 +288,11 @@ impl Processes for RealProcesses {
             EnumWindows(collect_window, &mut windows as *mut _ as isize);
         }
         let mut hidden = self.hidden.lock().unwrap_or_else(|e| e.into_inner());
+        let before = hidden.len();
         hidden.retain(|(handle, remembered)| {
             scoped_owner(owner(*handle as Hwnd), *remembered, &allowed)
         });
+        if hidden.len() < before { self.record(Step::Window(Window::LauncherDestroyed)); }
         for handle in windows {
             let window = handle as Hwnd;
             let pid = owner(window);
@@ -283,6 +307,7 @@ impl Processes for RealProcesses {
                 unsafe {
                     ShowWindowAsync(window, 0);
                 }
+                self.record(Step::Window(Window::LauncherHidden));
             }
         }
     }
@@ -302,7 +327,9 @@ impl Processes for RealProcesses {
         game_pids.sort_unstable();
         ProcessSnapshot {
             launcher_running: install.is_some_and(|dir| !inside(&sys, dir).is_empty()),
+            launcher_count: install.map_or(0, |dir| inside(&sys, dir).len()),
             game_running: !game_pids.is_empty(),
+            game_window: game_window(&game_pids),
             game_pids,
         }
     }
@@ -319,7 +346,7 @@ impl Processes for RealProcesses {
             if procs.is_empty() {
                 return Ok(());
             }
-            if let Err(e) = kill_all(procs) {
+            if let Err(e) = kill_all(procs, |success, error_code| self.record(Step::StopAttempt { game: false, success, error_code })) {
                 // A process that vanished meanwhile makes `kill` fail too: look again.
                 if !inside(&snapshot(), install).is_empty() {
                     return Err(e);
@@ -349,7 +376,7 @@ impl Processes for RealProcesses {
     }
 
     fn stop_game(&self, exe_name: &str) -> Result<(), ProcessError> {
-        kill_all(named(&snapshot(), exe_name))?;
+        kill_all(named(&snapshot(), exe_name), |success, error_code| self.record(Step::StopAttempt { game: true, success, error_code }))?;
         let deadline = Instant::now() + Duration::from_secs(10);
         while self.game_running(exe_name) {
             if Instant::now() >= deadline {

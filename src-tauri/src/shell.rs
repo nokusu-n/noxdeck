@@ -19,6 +19,9 @@ pub enum ShellRequest {
 }
 
 pub trait Shell: Send + Sync {
+    fn diagnostics_path(&self, _name: &str) -> std::io::Result<Option<std::path::PathBuf>> {
+        Err(std::io::ErrorKind::Unsupported.into())
+    }
     fn request(&self, request: ShellRequest);
     fn open_url(&self, _url: &str) -> std::io::Result<()> {
         Err(std::io::ErrorKind::Unsupported.into())
@@ -40,6 +43,9 @@ impl<F: Fn(ShellRequest) + Send + Sync> Shell for F {
 pub struct Desktop(pub mpsc::Sender<ShellRequest>);
 
 impl Shell for Desktop {
+    fn diagnostics_path(&self, name: &str) -> std::io::Result<Option<std::path::PathBuf>> {
+        Ok(rfd::FileDialog::new().set_file_name(name).add_filter("TXT", &["txt"]).save_file())
+    }
     fn open_url(&self, url: &str) -> std::io::Result<()> {
         #[link(name = "shell32")]
         extern "system" {
@@ -101,6 +107,7 @@ pub fn show_window(app: &tauri::AppHandle) -> tauri::Result<()> {
         if config.visible { window.show()?; }
         if config.visible && config.focus { window.set_focus()?; }
     }
+    app.state::<Arc<Core>>().journal.record(crate::diagnostics::Step::Window(crate::diagnostics::Window::AppShown));
     Ok(())
 }
 
@@ -160,6 +167,9 @@ pub fn setup(
                     }),
                 };
                 assert!(result.is_ok(), "Noxdeck desktop request failed");
+                if request == ShellRequest::HideWindow {
+                    handle.state::<Arc<Core>>().journal.record(crate::diagnostics::Step::Window(crate::diagnostics::Window::AppDestroyed));
+                }
             });
         }
     });

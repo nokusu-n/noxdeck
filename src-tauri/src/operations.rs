@@ -9,6 +9,7 @@ use crate::*;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
+use crate::diagnostics::{Command, Outcome, Step, WaitEnd, WaitFor};
 
 impl Core {
     // ---- shared steps -------------------------------------------------------
@@ -17,6 +18,7 @@ impl Core {
         if let Some(op) = lock(&self.inner).operation.as_mut() {
             op.phase = phase;
         }
+        self.journal.record(Step::Phase(phase));
         self.publish();
     }
 
@@ -28,6 +30,17 @@ impl Core {
         let request = {
             let mut inner = lock(&self.inner);
             let op = inner.operation.take();
+            if let Some(op) = &op {
+                let outcome = if success {
+                    Outcome::Success
+                } else if self.cancel.load(Ordering::SeqCst) { Outcome::Cancelled }
+                else if let Some((note, _)) = op.account_id.as_ref().and_then(|id| inner.outcomes.get(id)) {
+                    match *note { "no_answer" => Outcome::NoAnswer, "game_needs_update" => Outcome::GameNeedsUpdate, "game_not_started" => Outcome::GameNotStarted, _ => Outcome::Failed }
+                } else if let Some(account) = op.account_id.as_ref().and_then(|id| inner.registry.find(id)) {
+                    match account.login_state { LoginState::PasswordWanted => Outcome::PasswordWanted, LoginState::CodeWanted => Outcome::CodeWanted, _ => Outcome::Failed }
+                } else { Outcome::Failed };
+                self.journal.record(Step::OperationEnded { kind: op.kind, account: op.account_id.as_ref().map(|id| self.journal.account(id)), outcome });
+            }
             if op.is_some_and(|o| matches!(o.kind, OpKind::Start | OpKind::Game)) {
                 use crate::shell::ShellRequest::*;
                 if !success {
@@ -68,13 +81,15 @@ impl Core {
     }
 
     fn write_list(&self, install: &Path, value: &str) -> Result<(), ConfigError> {
-        config::write_saved_names(
+        let result = config::write_saved_names(
             &self.paths.config_file(),
             &self.paths.data,
             install,
             &*self.processes,
             value,
-        )
+        );
+        self.journal.record(Step::ConfigWritten { success: result.is_ok() });
+        result
     }
 
     /// Check refusals and acquire the one launcher-operation slot.
@@ -82,6 +97,19 @@ impl Core {
         &self,
         kind: OpKind,
         account_id: Option<String>,
+        check: impl FnOnce(&Inner) -> Result<(), Refusal>,
+    ) -> Result<PathBuf, Refusal> {
+        let account = account_id.as_ref().map(|id| self.journal.account(id));
+        let result = self.acquire_operation(kind, account_id, check);
+        match &result {
+            Ok(_) => { self.journal.record(Step::OperationBegan { kind, account }); self.journal.record(Step::Phase(Phase::Stopping)); }
+            Err(refusal) => self.journal.record(Step::OperationRefused { kind, refusal: *refusal }),
+        }
+        result
+    }
+
+    fn acquire_operation(
+        &self, kind: OpKind, account_id: Option<String>,
         check: impl FnOnce(&Inner) -> Result<(), Refusal>,
     ) -> Result<PathBuf, Refusal> {
         self.tick();
@@ -109,11 +137,7 @@ impl Core {
     }
 
     fn stop_for_restart(&self, install: &Path) -> Result<(), Refusal> {
-        if self
-            .processes
-            .stop_launcher(&install, self.timing.stop)
-            .is_err()
-        {
+        if self.stop_launcher_journalled(install).is_err() {
             self.end_operation();
             return Err(Refusal::LauncherNotClosable);
         }
@@ -135,15 +159,33 @@ impl Core {
 
     fn start_selected_launcher(&self, install: &Path, email: &str) -> bool {
         self.set_phase(Phase::Starting);
+        self.journal.record(Step::Command(Command::SelectAccount));
         let written = matches!(
             self.write_list(install, email),
             Ok(()) | Err(ConfigError::KeyMissing)
         );
-        written && self.processes.start_launcher(install).is_ok()
+        written && self.start_launcher_journalled(install).is_ok()
+    }
+
+    fn start_launcher_journalled(&self, install: &Path) -> Result<(), launcher::ProcessError> {
+        self.journal.record(Step::Command(Command::StartLauncher));
+        let result = self.processes.start_launcher(install);
+        diagnostics::command_result(&self.journal, Command::StartLauncher, &result);
+        result
+    }
+
+    fn stop_launcher_journalled(&self, install: &Path) -> Result<(), launcher::ProcessError> {
+        self.journal.record(Step::Command(Command::StopLauncher));
+        let mut wait = self.journal.wait(WaitFor::LauncherStopped, Some(self.timing.stop));
+        let result = self.processes.stop_launcher(install, self.timing.stop);
+        wait.end(if result.is_ok() { WaitEnd::Event } else { WaitEnd::Failed });
+        diagnostics::command_result(&self.journal, Command::StopLauncher, &result);
+        result
     }
 
     fn wait_login(&self, seq0: u64, wanted: Option<&str>) -> Option<LauncherEvent> {
         self.set_phase(Phase::WaitingLogin);
+        let mut wait = self.journal.wait(WaitFor::Login, Some(self.timing.start_timeout));
         let deadline = Instant::now() + self.timing.start_timeout;
         let mut gone_since: Option<Instant> = None;
         loop {
@@ -159,6 +201,7 @@ impl Core {
                 _ => false,
             });
             if outcome.is_some() {
+                wait.end(WaitEnd::Event);
                 return outcome;
             }
             if lock(&self.inner).launcher_running {
@@ -166,9 +209,11 @@ impl Core {
             } else if gone_since.get_or_insert_with(Instant::now).elapsed()
                 >= self.timing.gone_grace
             {
+                wait.end(WaitEnd::Gone);
                 return None;
             }
             if Instant::now() >= deadline {
+                wait.end(WaitEnd::Bound);
                 return None;
             }
             self.pause();
@@ -256,7 +301,12 @@ impl Core {
             Ok(())
         })?;
         if game_running {
-            if self.processes.stop_game(&self.paths.game_exe).is_err() {
+            self.journal.record(Step::Command(Command::StopGame));
+            let mut wait = self.journal.wait(WaitFor::GameStopped, Some(Duration::from_secs(10)));
+            let result = self.processes.stop_game(&self.paths.game_exe);
+            wait.end(if result.is_ok() { WaitEnd::Event } else { WaitEnd::Failed });
+            diagnostics::command_result(&self.journal, Command::StopGame, &result);
+            if result.is_err() {
                 self.end_operation();
                 return Err(Refusal::GameNotClosable);
             }
@@ -360,7 +410,10 @@ impl Core {
             return Some("game_needs_update");
         }
         self.set_phase(Phase::LaunchingGame);
-        if self.processes.send_launch_command(install).is_err() {
+        self.journal.record(Step::Command(Command::LaunchGame));
+        let result = self.processes.send_launch_command(install);
+        diagnostics::command_result(&self.journal, Command::LaunchGame, &result);
+        if result.is_err() {
             return Some("game_not_started");
         }
         self.processes.refresh_launcher_pids(install);
@@ -368,28 +421,34 @@ impl Core {
             self.processes.hide_windows(install);
         }
         let deadline = Instant::now() + self.timing.game_timeout;
+        let mut wait = self.journal.wait(WaitFor::GameProcess, Some(self.timing.game_timeout));
         loop {
             self.tick();
             if lock(&self.inner).game_running {
+                wait.end(WaitEnd::Event);
                 break;
             }
             if Instant::now() >= deadline {
+                wait.end(WaitEnd::Bound);
                 return Some("game_not_started");
             }
             self.pause();
         }
+        drop(wait);
         if close_launcher {
             self.set_phase(Phase::ClosingLauncher);
         }
         let deadline = Instant::now() + self.timing.game_settle;
+        let mut wait = self.journal.wait(WaitFor::GameSettle, Some(self.timing.game_settle));
         while Instant::now() < deadline {
             self.pause();
             self.tick();
         }
+        wait.end(WaitEnd::Elapsed);
+        drop(wait);
         if close_launcher && lock(&self.inner).launcher_running
             && self
-                .processes
-                .stop_launcher(install, self.timing.stop)
+                .stop_launcher_journalled(install)
                 .is_err()
         {
             return Some("no_answer");
@@ -411,20 +470,23 @@ impl Core {
     fn run_add(&self, previous: Option<String>, install: PathBuf) {
         self.set_phase(Phase::Starting);
         let seq0 = self.seq();
+        self.journal.record(Step::Command(Command::ClearAccountList));
         let ready = match (&previous, self.write_list(&install, "")) {
             (_, Ok(())) | (None, Err(ConfigError::KeyMissing)) => true,
             _ => false,
         };
-        if !ready || self.processes.start_launcher(&install).is_err() {
+        if !ready || self.start_launcher_journalled(&install).is_err() {
             self.restore(&install, &previous);
             self.end_operation();
             return;
         }
         self.set_phase(Phase::WaitingLogin);
+        let mut wait = self.journal.wait(WaitFor::AddLogin, None);
         let mut gone_since: Option<Instant> = None;
         let logged_in = loop {
             self.tick();
             if self.cancel.load(Ordering::SeqCst) {
+                wait.end(WaitEnd::Cancelled);
                 break None;
             }
             let login = self.events_since(seq0).into_iter().find_map(|e| match e {
@@ -432,6 +494,7 @@ impl Core {
                 _ => None,
             });
             if login.is_some() {
+                wait.end(WaitEnd::Event);
                 break login;
             }
             if lock(&self.inner).launcher_running {
@@ -439,16 +502,19 @@ impl Core {
             } else if gone_since.get_or_insert_with(Instant::now).elapsed()
                 >= self.timing.gone_grace
             {
+                wait.end(WaitEnd::Gone);
                 break None;
             }
             self.pause();
         };
+        drop(wait);
         self.set_phase(Phase::Finishing);
+        let success = logged_in.is_some();
         match logged_in {
             Some(id) => self.finish_add(&id),
             None => self.restore(&install, &previous),
         }
-        self.end_operation();
+        self.finish_operation(success);
     }
 
     /// Cancelled, or the launcher closed unused: stop it if it still runs, then put
@@ -456,11 +522,11 @@ impl Core {
     /// this comes after the exit, never before.
     fn restore(&self, install: &Path, previous: &Option<String>) {
         if self
-            .processes
-            .stop_launcher(install, self.timing.stop)
+            .stop_launcher_journalled(install)
             .is_ok()
         {
             if let Some(list) = previous {
+                self.journal.record(Step::Command(Command::RestoreAccountList));
                 let _ = self.write_list(install, list);
             }
         }
@@ -471,6 +537,8 @@ impl Core {
     fn finish_add(&self, id: &str) {
         let start = Instant::now();
         let (mut email, mut tag) = (None, None);
+        let mut email_wait = Some(self.journal.wait(WaitFor::Email, Some(self.timing.email_wait)));
+        let mut tag_wait = Some(self.journal.wait(WaitFor::BattleTag, Some(self.timing.tag_wait)));
         loop {
             let elapsed = start.elapsed();
             if email.is_none() && elapsed < self.timing.email_wait {
@@ -481,6 +549,8 @@ impl Core {
             }
             let email_done = email.is_some() || elapsed >= self.timing.email_wait;
             let tag_done = tag.is_some() || elapsed >= self.timing.tag_wait;
+            if email_done { if let Some(mut wait) = email_wait.take() { wait.end(if email.is_some() { WaitEnd::Event } else { WaitEnd::Bound }); } }
+            if tag_done { if let Some(mut wait) = tag_wait.take() { wait.end(if tag.is_some() { WaitEnd::Event } else { WaitEnd::Bound }); } }
             if email_done && tag_done {
                 break;
             }

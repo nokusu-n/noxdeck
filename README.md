@@ -57,6 +57,8 @@ anything for you.
 
 ## Privacy and safety
 
+The diagnostics file is written only when you ask, where you choose, and holds no e-mails or BattleTags.
+
 - Noxdeck **never reads, stores or sends passwords**, login tokens or session
   data. You always log in yourself, in the launcher; Noxdeck uses the login the
   launcher has already saved.

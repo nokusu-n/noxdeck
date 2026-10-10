@@ -5,6 +5,10 @@
 const gameName = "Overwatch";
 
 const en = {
+  saveDiagnostics: "Save diagnostics",
+  diagnosticsNote: "Save a file to help investigate a problem. It holds no e-mails, BattleTags or passwords.",
+  diagnosticsSaved: "Diagnostics saved.",
+  diagnosticsFailed: "Could not save diagnostics. Choose another folder and try again.",
   developedBy: "Developed by Nokusu.dev",
   openRepository: "Open the GitHub repository",
   r_repository_open_failed: "Could not open the repository in your browser.",
@@ -110,6 +114,10 @@ const en = {
 };
 
 const ru: typeof en = {
+  saveDiagnostics: "Сохранить диагностику",
+  diagnosticsNote: "Файл поможет разобраться в проблеме. В нём нет e-mail, BattleTag и паролей.",
+  diagnosticsSaved: "Диагностика сохранена.",
+  diagnosticsFailed: "Не удалось сохранить диагностику. Выберите другую папку и повторите.",
   developedBy: "Разработано Nokusu.dev",
   openRepository: "Открыть репозиторий на GitHub",
   r_repository_open_failed: "Не удалось открыть репозиторий в браузере.",
@@ -215,6 +223,10 @@ const ru: typeof en = {
 };
 
 const it: typeof en = {
+  saveDiagnostics: "Salva diagnostica",
+  diagnosticsNote: "Salva un file per aiutare a capire il problema. Non contiene e-mail, BattleTag o password.",
+  diagnosticsSaved: "Diagnostica salvata.",
+  diagnosticsFailed: "Impossibile salvare la diagnostica. Scegli un’altra cartella e riprova.",
   developedBy: "Sviluppato da Nokusu.dev",
   openRepository: "Apri il repository su GitHub",
   r_repository_open_failed: "Impossibile aprire il repository nel browser.",
