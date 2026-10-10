@@ -1,6 +1,7 @@
 //! Requests from the core to the desktop shell.
 pub mod autostart;
 pub mod instance;
+pub mod window_state;
 use crate::{tray, Core};
 use std::sync::{mpsc, Arc};
 use tauri::{
@@ -76,14 +77,15 @@ fn native_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
 }
 
 pub fn show_window(app: &tauri::AppHandle) -> tauri::Result<()> {
+    let config = &app.config().app.windows[0];
     if let Some(window) = app.get_webview_window("main") {
         window.unminimize()?;
-        window.show()?;
-        window.set_focus()?;
+        if config.visible { window.show()?; }
+        if config.visible && config.focus { window.set_focus()?; }
     } else {
         #[allow(unused_mut)]
         let mut builder =
-            tauri::WebviewWindowBuilder::from_config(app, &app.config().app.windows[0])?;
+            tauri::WebviewWindowBuilder::from_config(app, config)?.visible(false).focused(false);
         #[cfg(debug_assertions)]
         if crate::test_support::program_test() {
             builder = builder
@@ -94,7 +96,10 @@ pub fn show_window(app: &tauri::AppHandle) -> tauri::Result<()> {
                     }
                 });
         }
-        builder.build()?.set_focus()?;
+        let window = builder.build()?;
+        window_state::restore(app, &window)?;
+        if config.visible { window.show()?; }
+        if config.visible && config.focus { window.set_focus()?; }
     }
     Ok(())
 }
@@ -104,6 +109,7 @@ pub fn setup(
     requests: mpsc::Receiver<ShellRequest>,
     start_in_tray: bool,
 ) -> tauri::Result<()> {
+    app.manage(window_state::Memory::default());
     TrayIconBuilder::with_id("noxdeck")
         .icon(tauri::include_image!("icons/noxdeck-tray.ico"))
         .tooltip("Noxdeck")
@@ -139,10 +145,11 @@ pub fn setup(
             let _ = app.run_on_main_thread(move || {
                 let result = match request {
                     ShellRequest::ShowWindow => show_window(&handle),
-                    ShellRequest::HideWindow => handle
+                    ShellRequest::HideWindow => window_state::remember(&handle).and_then(|()| handle
                         .get_webview_window("main")
-                        .map_or(Ok(()), |w| w.destroy()),
+                        .map_or(Ok(()), |w| w.destroy())),
                     ShellRequest::Exit => {
+                        let _ = window_state::remember(&handle);
                         handle.exit(0);
                         Ok(())
                     }
@@ -160,6 +167,9 @@ pub fn setup(
 }
 
 pub fn window_event(window: &tauri::Window, event: &tauri::WindowEvent) {
+    if matches!(event, tauri::WindowEvent::Moved(_) | tauri::WindowEvent::Resized(_)) {
+        let _ = window_state::track(window);
+    }
     if let tauri::WindowEvent::CloseRequested { api, .. } = event {
         api.prevent_close();
         window

@@ -210,6 +210,9 @@ async function checkLanguage(lang) {
 
   await see(["version", "add-account", "save-current", "sort-last-login", "sort-battletag", `account-${A.id}`, `tag-${A.id}`, `email-${A.id}`, `state-${A.id}`, `start-${A.id}`, `delete-${A.id}`]);
   await see(["settings-open"]);
+  if (lang === "it" && process.env.NOXDECK_CAPTURE_DIR) {
+    await app.browser.saveScreenshot(`${process.env.NOXDECK_CAPTURE_DIR}/main-it.png`);
+  }
   await h.click("settings-open");
   await see(["settings", "settings-back", "settings-after-title", "settings-language-title", "developed-by", "ratings-source-note"]);
   assert.ok((await h.text("developed-by")).includes("Nokusu.dev"));
@@ -245,6 +248,9 @@ async function checkLanguage(lang) {
       await app.browser.saveScreenshot(`.tmp-runs/003/ui-${lang}-${width}.png`);
     }
     await app.browser.setWindowSize(960, 720);
+  }
+  if (lang === "it" && process.env.NOXDECK_CAPTURE_DIR) {
+    await app.browser.saveScreenshot(`${process.env.NOXDECK_CAPTURE_DIR}/settings-it.png`);
   }
   await h.click("settings-back");
   for (const role of ["tank", "damage", "support"]) {

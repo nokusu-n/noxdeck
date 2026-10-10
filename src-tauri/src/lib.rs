@@ -630,7 +630,10 @@ pub fn run() {
         ])
         .build(context)
         .expect("error while building Noxdeck")
-        .run(|_, event| {
+        .run(|app, event| {
+            if matches!(event, tauri::RunEvent::Exit) {
+                let _ = shell::window_state::remember(app);
+            }
             if let tauri::RunEvent::ExitRequested {
                 api, code: None, ..
             } = event
