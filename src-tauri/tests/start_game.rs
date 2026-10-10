@@ -216,7 +216,7 @@ fn wanted_account_is_reused_without_restart_hiding_or_config_write() {
     core.start_game(A, false).unwrap();
     wait_idle(&core);
     assert_started(&core, A);
-    assert!(since.elapsed() >= core.timing.game_settle);
+    assert!(since.elapsed() >= core.timing.handover_pause);
     assert_eq!(f.procs.calls(), ["send_launch_command", "stop_launcher"]);
     assert_eq!(f.config_bytes(), before);
     assert!(!f.backup_file().exists());
@@ -346,9 +346,10 @@ fn a_game_that_exits_after_being_seen_still_counts_as_started() {
     core.start_game(A, false).unwrap();
     wait_idle(&core);
     let s = core.state();
-    assert_eq!(s.launcher, LauncherKind::Closed);
+    assert_eq!(s.launcher, LauncherKind::LoggedIn);
     assert!(!s.game_running);
     assert_eq!(account(&s, A).last_outcome, Some("game_started"));
+    assert_eq!(f.procs.calls().iter().filter(|c| c.as_str() == "stop_launcher").count(), 0);
 }
 
 fn script_on_start(

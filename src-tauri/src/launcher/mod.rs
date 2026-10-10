@@ -97,7 +97,7 @@ pub struct ProcessSnapshot {
     pub launcher_running: bool,
     pub launcher_count: usize,
     pub game_running: bool,
-    pub game_window: bool,
+    pub game_window_pids: Vec<u32>,
     pub game_pids: Vec<u32>,
 }
 

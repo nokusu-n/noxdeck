@@ -279,10 +279,16 @@ fn kill(pid: u32) -> Result<(), i32> {
         error.map_or(Ok(()), Err)
     }
 }
-fn game_window(pids: &[u32]) -> bool {
+fn game_windows(pids: &[u32]) -> Vec<u32> {
     let mut windows = Vec::<usize>::new();
     unsafe { EnumWindows(collect_window, &mut windows as *mut _ as isize); }
-    windows.into_iter().any(|w| pids.contains(&owner(w as Hwnd)) && unsafe { IsWindowVisible(w as Hwnd) != 0 })
+    let mut visible: Vec<_> = windows.into_iter().filter_map(|w| {
+        let pid = owner(w as Hwnd);
+        (pids.contains(&pid) && unsafe { IsWindowVisible(w as Hwnd) != 0 }).then_some(pid)
+    }).collect();
+    visible.sort_unstable();
+    visible.dedup();
+    visible
 }
 
 impl Processes for RealProcesses {
@@ -351,7 +357,7 @@ impl Processes for RealProcesses {
             launcher_running: install.is_some_and(|dir| !inside(&sys, dir).is_empty()),
             launcher_count: install.map_or(0, |dir| inside(&sys, dir).len()),
             game_running: !game_pids.is_empty(),
-            game_window: game_window(&game_pids),
+            game_window_pids: game_windows(&game_pids),
             game_pids,
         }
     }

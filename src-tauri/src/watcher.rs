@@ -31,6 +31,8 @@ impl Core {
             inner.install = install;
             inner.launcher_running = snapshot.launcher_running;
             inner.game_running = snapshot.game_running;
+            inner.game_pids = snapshot.game_pids.clone();
+            inner.game_window_pids = snapshot.game_window_pids.clone();
             let was_in_game = inner.game.confirmed.clone();
             if polled.new_file {
                 inner.session = Session::LoginScreen;

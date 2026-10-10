@@ -21,7 +21,7 @@ fn cold_start(settle: Duration, refresh: Duration) -> Fake {
     let procs = Arc::clone(&f.procs);
     f.procs.on_launch(move || procs.set_game(true));
     let timing = noxdeck_lib::Timing {
-        game_settle: settle,
+        handover_pause: settle,
         pid_refresh: refresh,
         ..fast()
     };

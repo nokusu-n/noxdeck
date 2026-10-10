@@ -33,6 +33,8 @@ pub fn fast() -> Timing {
         email_wait: Duration::from_millis(300),
         game_timeout: Duration::from_millis(300),
         game_settle: Duration::from_millis(100),
+        game_handover: Duration::from_millis(300),
+        handover_pause: Duration::from_millis(100),
         hide_interval: Duration::from_millis(10),
         pid_refresh: Duration::from_millis(250),
         ratings_interval: Duration::from_secs(1800),
@@ -44,6 +46,7 @@ struct ProcState {
     running: bool,
     game: bool,
     game_pids: Vec<u32>,
+    game_window: Option<bool>,
     deny_stop: bool,
     stop_error: Option<ProcessError>,
     deny_game_stop: bool,
@@ -72,6 +75,9 @@ impl RecordingProcesses {
         let mut s = self.s.lock().unwrap();
         s.game = !pids.is_empty();
         s.game_pids = pids;
+    }
+    pub fn set_game_window(&self, visible: bool) {
+        self.s.lock().unwrap().game_window = Some(visible);
     }
     pub fn deny_stop(&self, v: bool) {
         self.s.lock().unwrap().deny_stop = v;
@@ -118,7 +124,7 @@ impl Processes for RecordingProcesses {
             launcher_running: install.is_some() && s.running,
             launcher_count: usize::from(install.is_some() && s.running),
             game_running: s.game,
-            game_window: s.game,
+            game_window_pids: if s.game_window.unwrap_or(true) { s.game_pids.clone() } else { vec![] },
             game_pids: s.game_pids.clone(),
         }
     }

@@ -39,6 +39,9 @@ test("US1.1 closed launcher: progress, game on the chosen account, launcher clos
   assert.equal(await h.el("add-account").isEnabled(), false);
   await h.tick(async () => (await h.el("operation").getAttribute("data-phase")) === "closing_launcher", "no closing phase");
   assert.match(await h.text(`state-${A.id}`), /Closing Battle.net/);
+  const duringHandover = await state();
+  assert.equal(duringHandover.gameRunning, true);
+  assert.equal(duringHandover.launcher, "logged_in", "launcher remains alive during the handover pause");
   await assertFinished();
 });
 

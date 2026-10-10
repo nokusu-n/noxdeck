@@ -423,39 +423,68 @@ impl Core {
         }
         let deadline = Instant::now() + self.timing.game_timeout;
         let mut wait = self.journal.wait(WaitFor::GameProcess, Some(self.timing.game_timeout));
-        loop {
+        let game_pid = loop {
             self.tick();
-            if lock(&self.inner).game_running {
+            if let Some(pid) = lock(&self.inner).game_pids.first().copied() {
                 wait.end(WaitEnd::Event);
-                break;
+                break pid;
             }
             if Instant::now() >= deadline {
                 wait.end(WaitEnd::Bound);
                 return Some("game_not_started");
             }
             self.pause();
-        }
+        };
         drop(wait);
         if close_launcher {
             self.set_phase(Phase::ClosingLauncher);
-        }
-        let deadline = Instant::now() + self.timing.game_settle;
-        let mut wait = self.journal.wait(WaitFor::GameSettle, Some(self.timing.game_settle));
-        while Instant::now() < deadline {
-            self.pause();
-            self.tick();
-        }
-        wait.end(WaitEnd::Elapsed);
-        drop(wait);
-        if close_launcher && lock(&self.inner).launcher_running
-            && self
-                .stop_launcher_journalled(install)
-                .is_err()
-        {
-            return Some("no_answer");
+            if self.wait_game_handover(game_pid)
+                && lock(&self.inner).launcher_running
+                && self.stop_launcher_journalled(install).is_err()
+            {
+                return Some("no_answer");
+            }
+        } else {
+            let deadline = Instant::now() + self.timing.game_settle;
+            let mut wait = self.journal.wait(WaitFor::GameSettle, Some(self.timing.game_settle));
+            while Instant::now() < deadline {
+                self.pause();
+                self.tick();
+            }
+            wait.end(WaitEnd::Elapsed);
         }
         self.tick();
         Some("game_started")
+    }
+
+    /// Rule B: a visible window plus a pause is a conservative handover estimate.
+    fn wait_game_handover(&self, pid: u32) -> bool {
+        let deadline = Instant::now() + self.timing.game_handover;
+        let mut wait = self.journal.wait(WaitFor::GameHandover, Some(self.timing.game_handover));
+        loop {
+            self.tick();
+            let inner = lock(&self.inner);
+            if !inner.launcher_running { wait.end(WaitEnd::Event); return false; }
+            if !inner.game_pids.contains(&pid) { wait.end(WaitEnd::Gone); return false; }
+            if Instant::now() >= deadline { wait.end(WaitEnd::Bound); return false; }
+            if inner.game_window_pids.contains(&pid) { wait.end(WaitEnd::Event); break; }
+            drop(inner);
+            self.pause();
+        }
+        drop(wait);
+        let pause_until = Instant::now() + self.timing.handover_pause;
+        let bound = self.timing.handover_pause.min(deadline.saturating_duration_since(Instant::now()));
+        let mut wait = self.journal.wait(WaitFor::HandoverPause, Some(bound));
+        loop {
+            self.tick();
+            let inner = lock(&self.inner);
+            if !inner.launcher_running { wait.end(WaitEnd::Event); return false; }
+            if !inner.game_pids.contains(&pid) { wait.end(WaitEnd::Gone); return false; }
+            if Instant::now() >= deadline { wait.end(WaitEnd::Bound); return false; }
+            if Instant::now() >= pause_until { wait.end(WaitEnd::Elapsed); return true; }
+            drop(inner);
+            self.pause();
+        }
     }
 
     // ---- add account --------------------------------------------------------

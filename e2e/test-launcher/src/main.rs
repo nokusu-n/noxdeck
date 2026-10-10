@@ -279,8 +279,42 @@ fn stay_alive() -> ! {
     }
 }
 
+// A visible top-level game window kept off-screen, without taskbar or activation.
+fn game_window() -> ! {
+    use std::ffi::c_void;
+    #[repr(C)]
+    struct Message {
+        hwnd: *mut c_void, message: u32, wparam: usize, lparam: isize,
+        time: u32, point: [i32; 2], private: u32,
+    }
+    #[link(name = "user32")]
+    extern "system" {
+        fn CreateWindowExW(ex: u32, class: *const u16, title: *const u16, style: u32,
+            x: i32, y: i32, width: i32, height: i32, parent: *mut c_void,
+            menu: *mut c_void, instance: *mut c_void, param: *mut c_void) -> *mut c_void;
+        fn GetMessageW(message: *mut Message, window: *mut c_void, min: u32, max: u32) -> i32;
+        fn DispatchMessageW(message: *const Message) -> isize;
+    }
+    let class: Vec<u16> = "STATIC\0".encode_utf16().collect();
+    let title: Vec<u16> = "Stand-in game\0".encode_utf16().collect();
+    unsafe {
+        let window = CreateWindowExW(0x08000080, class.as_ptr(), title.as_ptr(), 0x90000000,
+            -32000, -32000, 1, 1, std::ptr::null_mut(), std::ptr::null_mut(),
+            std::ptr::null_mut(), std::ptr::null_mut());
+        assert!(!window.is_null(), "stand-in game window was not created");
+        let mut message: Message = std::mem::zeroed();
+        while GetMessageW(&mut message, std::ptr::null_mut(), 0, 0) > 0 {
+            DispatchMessageW(&message);
+        }
+    }
+    std::process::exit(0)
+}
+
 fn main() {
     let exe = std::env::current_exe().unwrap();
+    if exe.file_name().is_some_and(|name| name.to_string_lossy().eq_ignore_ascii_case(
+        &std::env::var("NOXDECK_GAME_EXE").unwrap_or_else(|_| "FakeGame.exe".into())
+    )) { game_window(); }
     let Ok(text) = fs::read_to_string(exe.with_file_name("scenario.json")) else {
         stay_alive();
     };

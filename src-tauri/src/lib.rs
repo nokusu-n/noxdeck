@@ -42,6 +42,8 @@ pub struct Timing {
     pub email_wait: Duration,
     pub game_timeout: Duration,
     pub game_settle: Duration,
+    pub game_handover: Duration,
+    pub handover_pause: Duration,
     pub hide_interval: Duration,
     pub pid_refresh: Duration,
     pub ratings_interval: Duration,
@@ -59,6 +61,8 @@ impl Default for Timing {
             email_wait: Duration::from_secs(15),
             game_timeout: Duration::from_secs(120),
             game_settle: Duration::from_secs(5),
+            game_handover: Duration::from_secs(120),
+            handover_pause: Duration::from_secs(15),
             hide_interval: Duration::from_millis(10),
             pid_refresh: Duration::from_millis(250),
             ratings_interval: Duration::from_secs(30 * 60),
@@ -72,6 +76,7 @@ impl Timing {
             ("start_timeout", self.start_timeout), ("gone_grace", self.gone_grace),
             ("tag_wait", self.tag_wait), ("email_wait", self.email_wait),
             ("game_timeout", self.game_timeout), ("game_settle", self.game_settle),
+            ("game_handover", self.game_handover), ("handover_pause", self.handover_pause),
             ("hide_interval", self.hide_interval), ("pid_refresh", self.pid_refresh),
             ("ratings_interval", self.ratings_interval)]
     }
@@ -95,6 +100,8 @@ impl Timing {
             gone_grace: ms("NOXDECK_GONE_GRACE_MS", d.gone_grace),
             game_timeout: ms("NOXDECK_GAME_TIMEOUT_MS", d.game_timeout),
             game_settle: ms("NOXDECK_GAME_SETTLE_MS", d.game_settle),
+            game_handover: ms("NOXDECK_GAME_HANDOVER_MS", d.game_handover),
+            handover_pause: ms("NOXDECK_HANDOVER_PAUSE_MS", d.handover_pause),
             hide_interval: ms("NOXDECK_HIDE_INTERVAL_MS", d.hide_interval),
             ratings_interval: ms("NOXDECK_RATINGS_MS", d.ratings_interval),
             ..d
@@ -244,6 +251,8 @@ pub(crate) struct Inner {
     pub launcher_running: bool,
     pub game_running: bool,
     pub session: Session,
+    pub game_pids: Vec<u32>,
+    pub game_window_pids: Vec<u32>,
     pub game_readiness: GameReadiness,
     pub game: GameTracking,
     /// Events the log produced, numbered, newest last; operations wait on these.
@@ -392,6 +401,8 @@ impl Core {
                 install: None,
                 launcher_running: false,
                 game_running: false,
+                game_pids: Vec::new(),
+                game_window_pids: Vec::new(),
                 session: Session::LoginScreen,
                 game_readiness: GameReadiness::Unknown,
                 game,

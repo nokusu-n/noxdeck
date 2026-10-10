@@ -109,6 +109,8 @@ export async function startApp(opts = {}) {
     NOXDECK_GONE_GRACE_MS: "1500",
     NOXDECK_GAME_TIMEOUT_MS: "1800",
     NOXDECK_GAME_SETTLE_MS: "900",
+    NOXDECK_GAME_HANDOVER_MS: "3000",
+    NOXDECK_HANDOVER_PAUSE_MS: "900",
     NOXDECK_INSTANCE: `e2e-${process.pid}-${nextPort}`,
     NOXDECK_AUTOSTART_NAME: `NoxDeck-Test-e2e-${process.pid}-${nextPort}`,
     NOXDECK_LOCALE: { ru: "ru-RU", en: "en-US", it: "it-IT" }[opts.lang ?? "en"],

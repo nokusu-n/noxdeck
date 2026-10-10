@@ -106,6 +106,7 @@ The program reads these to find things; the tests set them to point at stand-ins
 | `NOXDECK_STOP_MS` | bound for stopping all launcher processes | 30000 |
 | `NOXDECK_POLL_MS`, `NOXDECK_STAND_MS`, `NOXDECK_START_TIMEOUT_MS`, `NOXDECK_GONE_GRACE_MS` | timings, for the tests | 500, 5000, 60000, 15000 |
 | `NOXDECK_GAME_TIMEOUT_MS`, `NOXDECK_GAME_SETTLE_MS`, `NOXDECK_HIDE_INTERVAL_MS` | game wait, settling wait, window hiding interval, for the tests | 120000, 5000, 10 |
+| `NOXDECK_GAME_HANDOVER_MS`, `NOXDECK_HANDOVER_PAUSE_MS` | bound for visible game window + pause before closing the launcher (rule B), pause after the window appears | 120000, 15000 |
 
 The core resolves the language. Tests set `NOXDECK_LOCALE` or `settings.json`
 `language`; neither the window nor the tray uses localStorage for language.

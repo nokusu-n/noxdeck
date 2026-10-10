@@ -72,7 +72,7 @@ impl Journal {
         entries.entries.push_back(Entry { wall: SystemTime::now(), at: Instant::now(), step });
     }
     pub fn snapshot(&self, snapshot: &ProcessSnapshot) {
-        let value = (snapshot.launcher_running, snapshot.launcher_count, snapshot.game_running, snapshot.game_window);
+        let value = (snapshot.launcher_running, snapshot.launcher_count, snapshot.game_running, !snapshot.game_window_pids.is_empty());
         let changed = {
             let mut entries = lock(&self.0);
             let changed = entries.snapshot != Some(value);
