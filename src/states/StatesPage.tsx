@@ -7,9 +7,9 @@ import { AccountRecord } from "../components/AccountRecord";
 import { DeleteDialog, GameDialog, ReminderDialog } from "../components/Dialogs";
 import { Api, MainWindow } from "../components/MainWindow";
 import { Lang, setLang, t } from "../i18n";
-import type { Account, Role, State } from "../core";
+import { ranks, type Account, type Role, type State } from "../core";
 import type { WindowControls } from "../window";
-import { base, sample } from "./data";
+import { base, mixedAccounts, sample } from "./data";
 import "./states.css";
 
 const ok = async () => ({ ok: true as const, value: undefined });
@@ -39,7 +39,7 @@ function Shot({ caption, children }: { caption: string; children: ReactNode }) {
   return <figure className="shot"><figcaption>{caption}</figcaption>{children}</figure>;
 }
 
-type Case = { caption: string; account?: Partial<Account>; busy?: boolean; loggingIn?: boolean; phase?: Op["phase"]; preview?: "copied" | "started" };
+type Case = { caption: string; account?: Partial<Account>; busy?: boolean; loggingIn?: boolean; phase?: Op["phase"]; kind?: "start" | "game"; preview?: "copied" | "started" };
 const cases: Case[] = [
   { caption: "Готов, ничего не запущено" },
   { caption: "Battle.net открыт на этом аккаунте", account: { isCurrent: true } },
@@ -62,7 +62,11 @@ const cases: Case[] = [
   { caption: "BattleTag скопирован", preview: "copied" },
   { caption: "Аккаунт World of Warcraft", account: { game: "world_of_warcraft" } },
   { caption: "Аккаунт Call of Duty", account: { game: "call_of_duty" } },
+  { caption: "Аккаунт World of Warcraft: Forever", account: { game: "world_of_warcraft_forever" } },
   { caption: "Аккаунт без игры", account: { game: "none" } },
+  { caption: "Запуск Battle.net: «Отмена» на нажатой кнопке", busy: true, loggingIn: true, phase: "waiting_login", kind: "start" },
+  { caption: "Запуск Overwatch: «Отмена» на кнопке игры", busy: true, loggingIn: true, phase: "launching_game", kind: "game" },
+  { caption: "Играющий аккаунт: кнопка зелёная и нажимается", account: { isCurrent: true, isInGame: true } },
 ];
 
 function RecordCase({ c }: { c: Case }) {
@@ -70,7 +74,7 @@ function RecordCase({ c }: { c: Case }) {
   return (
     <Shot caption={c.caption}>
       <ul className="cards cards--one">
-        <AccountRecord account={a} loggingIn={!!c.loggingIn} phase={c.phase ?? null} busy={!!c.busy} launcherFound
+        <AccountRecord account={a} loggingIn={!!c.loggingIn} phase={c.phase ?? null} operationKind={c.kind ?? null} cancellable={!!c.kind} busy={!!c.busy} launcherFound
           autoRatings preview={c.preview}
           pickingRole={null} onPickRating={() => {}} onStart={() => {}} onDelete={() => {}} onGame={() => {}} />
       </ul>
@@ -92,6 +96,15 @@ const trayLines = (language: Lang) => [
   "Haldor#4059",
   trayText[language][3],
 ];
+
+const owIds = mixedAccounts.filter(a => a.game === "overwatch").map(a => a.id);
+/** The core orders the list; here the order is done by hand, so the page shows what a role sort looks like. */
+const overwatch = (sort: State["sort"]): Partial<State> => {
+  const [role, direction] = sort.split("_") as [Role, "desc" | "asc"];
+  const score = (id: string) => { const r = mixedAccounts.find(a => a.id === id)!.ratings[role]; return r && r.rank !== "placement" ? ranks.indexOf(r.rank) * 10 + (6 - (r.division ?? 5)) : null; };
+  const ids = [...owIds].sort((x, y) => (score(x) === null ? 1 : 0) - (score(y) === null ? 1 : 0) || ((score(x) ?? 0) - (score(y) ?? 0)) * (direction === "asc" ? 1 : -1));
+  return { tab: "overwatch", sort, accounts: [...ids.map(id => mixedAccounts.find(a => a.id === id)!), ...mixedAccounts.filter(a => !ids.includes(a.id))], visibleAccountIds: ids };
+};
 
 export function StatesPage() {
   const [lang, setLanguage] = useState<Lang>("ru");
@@ -115,6 +128,40 @@ export function StatesPage() {
       </Section>
       <Section title="Окно на весь экран" note="1440×810, показано в масштабе 66%.">
         <Frame w={1440} h={810} zoom={0.66}><MainWindow state={s({})} api={api} controls={controls(true)} /></Frame>
+      </Section>
+      <Section title="Вкладки игр" note="Каждый вид вкладки в окне 960×720: «Все» с карточками всех игр, Overwatch с сортировкой по роли в обе стороны, пустая вкладка.">
+        <div className="pair">
+          <Shot caption="Все: карточки всех игр и без игры, одной высоты">
+            <Frame w={960} h={720}><MainWindow state={s({ accounts: mixedAccounts, visibleAccountIds: mixedAccounts.map(a => a.id) })} api={api} controls={controls()} /></Frame>
+          </Shot>
+          <Shot caption="Overwatch, танк: сначала высокий ранг">
+            <Frame w={960} h={720}><MainWindow state={s(overwatch("tank_desc"))} api={api} controls={controls()} /></Frame>
+          </Shot>
+          <Shot caption="Overwatch, танк: сначала низкий ранг">
+            <Frame w={960} h={720}><MainWindow state={s(overwatch("tank_asc"))} api={api} controls={controls()} /></Frame>
+          </Shot>
+          <Shot caption="Пустая вкладка Call of Duty">
+            <Frame w={960} h={720}><MainWindow state={s({ tab: "call_of_duty", accounts: base.accounts, visibleAccountIds: [] })} api={api} controls={controls()} /></Frame>
+          </Shot>
+          <Shot caption="Шестерёнка: выбор игры аккаунта">
+            <Frame w={960} h={720}><MainWindow state={s({ accounts: mixedAccounts, visibleAccountIds: mixedAccounts.map(a => a.id) })} api={api} controls={controls()} initial={{ pickingGame: "b3" }} /></Frame>
+          </Shot>
+          <Shot caption="Запуск Overwatch: «Отмена» на нажатой кнопке">
+            <Frame w={960} h={720}><MainWindow state={s({ tab: "overwatch", accounts: mixedAccounts, visibleAccountIds: owIds, operation: op("launching_game", "game", "a5", true) })} api={api} controls={controls()} /></Frame>
+          </Shot>
+          <Shot caption="Играющий аккаунт: зелёная кнопка Overwatch">
+            <Frame w={960} h={720}><MainWindow state={s({ tab: "overwatch", accounts: mixedAccounts, visibleAccountIds: owIds })} api={api} controls={controls()} /></Frame>
+          </Shot>
+        </div>
+      </Section>
+      <Section title="Вкладки в узком окне" note="640×480: фишки игр в одну строку, сортировка свёрнута в одну кнопку.">
+        <div className="pair">
+          <Shot caption="Все"><Frame w={640} h={480}><MainWindow state={s({ accounts: mixedAccounts, visibleAccountIds: mixedAccounts.map(a => a.id) })} api={api} controls={controls()} /></Frame></Shot>
+          <Shot caption="Overwatch, сортировка по роли"><Frame w={640} h={480}><MainWindow state={s(overwatch("damage_asc"))} api={api} controls={controls()} /></Frame></Shot>
+          <Shot caption="Overwatch, меню сортировки открыто"><Frame w={640} h={480}><MainWindow state={s(overwatch("damage_asc"))} api={api} controls={controls()} initial={{ sortMenu: true }} /></Frame></Shot>
+          <Shot caption="Пустая вкладка"><Frame w={640} h={480}><MainWindow state={s({ tab: "call_of_duty", accounts: base.accounts, visibleAccountIds: [] })} api={api} controls={controls()} /></Frame></Shot>
+          <Shot caption="Запуск с «Отмена»"><Frame w={640} h={480}><MainWindow state={s({ operation: op("waiting_login", "start", "a5", true) })} api={api} controls={controls()} /></Frame></Shot>
+        </div>
       </Section>
       <Section title="Главное окно во время запуска" note="960×720. Шаг виден только на карточке и на её кнопке: над списком ничего не появляется, список не сдвигается.">
         <Frame w={960} h={720}><MainWindow state={s({ operation: op("starting") })} api={api} controls={controls()} /></Frame>

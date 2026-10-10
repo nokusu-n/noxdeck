@@ -27,7 +27,7 @@ function Cell({ account, role, autoRatings, open, onOpen }: {
   const rank = v && v.rank !== "placement" ? v.rank : null;
   const label = !v ? `${name}: ${t("noneLong")}` : rank ? `${name}: ${t(rank)} ${v.division}` : `${name}: ${t("placement")}`;
   return (
-    <button type="button" data-testid={`rating-pick-${account.id}-${role}`} className="rt" title={label} aria-haspopup="dialog" aria-expanded={open} onClick={(e) => onOpen(role, e.currentTarget)}>
+    <button type="button" data-testid={`rating-pick-${account.id}-${role}`} className="rt" data-role={role} title={label} aria-haspopup="dialog" aria-expanded={open} onClick={(e) => onOpen(role, e.currentTarget)}>
       <img className="rt-role" src={roleMark[role]} alt="" />
       <span data-testid={`rating-${account.id}-${role}`} className="rt-v">
         {rank ? <img className={`bd bd--${rank}`} src={badges[rank]} alt="" /> : <span className={`bd ${v ? "bd--calib" : "bd--none"}`} />}

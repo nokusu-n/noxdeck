@@ -29,10 +29,14 @@ export function GamePicker({ account, anchor, container, disabled, onPick, onClo
     document.addEventListener("keydown", key);
     return () => { document.removeEventListener("pointerdown", away); document.removeEventListener("keydown", key); };
   }, [anchor, onClose]);
-  return <div ref={ref} data-testid={`game-picker-${account.id}`} className="pk game-picker" role="menu" aria-label={t("accountGame")} style={at}>
-    <header className="pk-head"><b>{t("accountGame")}</b></header>
-    {[...games, "none" as const].map(game => <button key={game} data-testid={`game-option-${account.id}-${game}`} className={`btn game-option${account.game === game ? " is-on" : ""}`} role="menuitemradio" aria-checked={account.game === game} disabled={disabled} onClick={() => onPick(game)}>
-      <GameMark game={game} />{gameLabel(game)}
-    </button>)}
+  const row = (game: Game) => <button key={game} data-testid={`game-option-${account.id}-${game}`} className={`gp-i game-option${account.game === game ? " is-on" : ""}`} role="menuitemradio" aria-checked={account.game === game} disabled={disabled} onClick={() => onPick(game)}>
+    <i className="opt-dot" /><span className="gp-mark">{game !== "none" && <GameMark game={game} />}</span><span>{gameLabel(game)}</span>
+  </button>;
+  return <div ref={ref} data-testid={`game-picker-${account.id}`} className="gp" role="menu" aria-label={t("accountGame")} style={at}>
+    <header className="gp-h"><b>{t("accountGame")}</b>{account.battletag && <span>{account.battletag}</span>}</header>
+    {games.map(row)}
+    <hr />
+    {row("none")}
+    <p className="gp-note">{disabled ? t("r_game_change_blocked") : t("gameNote")}</p>
   </div>;
 }

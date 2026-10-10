@@ -82,7 +82,7 @@ export function SettingsScreen({ state, api, run }: {
           </div>
         </div>
       </Group>
-      <Group title={t("sectionOverwatch")}>
+      <Group title={t("sectionBattle")}>
         <Switch testid="set-close-launcher" label={t("closeLauncher")} checked={s.closeLauncher} onChange={(v) => run(() => api.setCloseLauncher(v))} />
         <Switch testid="set-auto-ratings" label={t("autoRatings")} note={t("ratingsSourceNote")} noteTestid="ratings-source-note" checked={s.autoRatings} onChange={(v) => run(() => api.setAutoRatings(v))} />
       </Group>

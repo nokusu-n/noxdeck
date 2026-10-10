@@ -161,7 +161,7 @@ async function checkLanguage(lang) {
   setLang(lang);
   const keys = {
     "add-account": ["addAccount"], "save-current": ["saveCurrent"], "sort-last-login": ["sortLastLogin"],
-    "sort-battletag": ["sortBattletag"], "settings-open": ["settings"], "settings": ["sectionProgram", "sectionOverwatch", "language"],
+    "sort-battletag": ["sortBattletag"], "settings-open": ["settings"], "settings": ["sectionProgram", "sectionBattle", "language"],
     "settings-back": ["back"], "settings-after-title": ["afterStart"], "settings-language-title": ["language"],
     "developed-by": ["developedBy"], "ratings-source-note": ["ratingsSourceNote"], "message": ["r_no_saved_login"],
     "save-diagnostics": ["saveDiagnostics"], "diagnostics-note": ["diagnosticsNote"],

@@ -3,6 +3,8 @@ import type { Account, Role, State } from "../core";
 import { lang, phaseKey, t } from "../i18n";
 import { Icon, OverwatchMark } from "../ui/Icon";
 import { Ratings } from "./Ratings";
+import { gameLabel } from "./GamePicker";
+import { GameMark } from "../ui/GameMark";
 
 type Phase = NonNullable<State["operation"]>["phase"];
 
@@ -93,7 +95,7 @@ export function AccountRecord({ account: a, loggingIn, phase, operationKind, can
           </div>
         </div>
         <div className="c-tools">
-        <button data-testid={`game-settings-${a.id}`} className="btn btn--icon" title={t("gameSettings")} aria-label={t("gameSettings")} aria-haspopup="menu" aria-expanded={!!pickingGame} onClick={e => onPickGame?.(e.currentTarget)}><Icon name="i-gear" size={16} /></button>
+        <button data-testid={`game-settings-${a.id}`} className={`btn btn--icon btn-gear${pickingGame ? " is-open" : ""}`} title={t("gameSettings")} aria-label={t("gameSettings")} aria-haspopup="menu" aria-expanded={!!pickingGame} onClick={e => onPickGame?.(e.currentTarget)}><Icon name="i-gear" size={16} /></button>
         <button data-testid={`delete-${a.id}`} className="btn btn--icon btn-del" disabled={busy} title={t("delete")} onClick={onDelete}>
           <Icon name="i-trash" size={16} />
           <span className="sr-only">{t("delete")}</span>
@@ -101,16 +103,23 @@ export function AccountRecord({ account: a, loggingIn, phase, operationKind, can
         </div>
       </div>
       <Ratings account={a} autoRatings={autoRatings} openRole={pickingRole} onOpen={onPickRating} />
+      {/* Cards share one height, set by the tallest. Where an Overwatch card has its ranks, the others have the game's own plate. */}
+      {a.game !== "overwatch" && (
+        <div className={`c-plate${a.game === "none" ? " c-plate--none" : ""}`} aria-hidden="true">
+          {a.game !== "none" && <GameMark game={a.game} size={26} />}
+          <span>{gameLabel(a.game)}</span>
+        </div>
+      )}
       <div className="c-acts">
         {loggingIn && operationKind === "start" && cancellable ? (
-          <button data-testid={`start-${a.id}`} className={`btn btn--act${wide}`} onClick={onCancel}>{t("cancel")}</button>
+          <button data-testid={`start-${a.id}`} className={`btn btn--act${wide}`} onClick={onCancel}><Icon name="i-x" size={14} />{t("cancel")}</button>
         ) : a.isCurrent ? (
           <button data-testid={`current-${a.id}`} className={`btn btn--act is-on${wide}`} disabled aria-current="true" title={t("openInLauncherTip")}>{t("start")}</button>
         ) : (
           <button data-testid={`start-${a.id}`} className={`btn btn--act${wide}`} disabled={startBlocked} title={reason ?? t("startTip")} onClick={onStart}>{t("start")}</button>
         )}
-        {a.game === "none" ? <button data-testid={`choose-game-${a.id}`} className="btn btn--act" disabled={loggingIn || a.isInGame} aria-haspopup="menu" onClick={e => onPickGame?.(e.currentTarget)}>{t("chooseGame")}</button> : showGameStart && (loggingIn && operationKind === "game" && cancellable ? (
-          <button data-testid={`${a.isInGame ? "ingame" : "game"}-${a.id}`} className="btn btn--act" onClick={onCancel}>{t("cancel")}</button>
+        {a.game === "none" ? <button data-testid={`choose-game-${a.id}`} className="btn btn--act btn-pick" disabled={loggingIn || a.isInGame} aria-haspopup="menu" onClick={e => onPickGame?.(e.currentTarget)}><Icon name="i-chev-down" size={14} />{t("chooseGame")}</button> : showGameStart && (loggingIn && operationKind === "game" && cancellable ? (
+          <button data-testid={`${a.isInGame ? "ingame" : "game"}-${a.id}`} className="btn btn--act" onClick={onCancel}><Icon name="i-x" size={14} />{t("cancel")}</button>
         ) : a.isInGame ? (
           <button data-testid={`ingame-${a.id}`} className="btn btn--act is-on" disabled={startBlocked} aria-current="true" title={reason ?? t("inGameTip")} onClick={onGame}><OverwatchMark />{t("startGame")}</button>
         ) : (

@@ -22,6 +22,23 @@ export const accounts: Account[] = [
   account("a9", "Fenwick#5588", "fenwick.t@example.com", { lastOutcome: "no_answer" }, { tank: svc("platinum", 5), damage: svc("gold", 2), support: svc("gold", 4) }),
 ];
 
+const none: Account["ratings"] = { tank: null, damage: null, support: null };
+
+/** Eleven accounts of every game, newest login first: what the tabs sort and filter. */
+export const mixedAccounts: Account[] = [
+  accounts[0],
+  account("b1", "Brindle#2204", "brindle.d@example.com", { game: "call_of_duty" }, none),
+  accounts[3],
+  account("b2", "Sable#6631", "sable.w@example.net", { game: "world_of_warcraft" }, none),
+  account("b3", "Wren#1480", "wren.p@example.org", { game: "none" }, none),
+  accounts[8],
+  account("b4", "Linden#7302", "linden.o@example.com", { game: "world_of_warcraft_forever", isCurrent: true }, none),
+  accounts[1],
+  accounts[2],
+  accounts[4],
+  accounts[7],
+];
+
 export const base: State = {
   tab: "all", visibleAccountIds: accounts.map(a => a.id),
   syncing: false,

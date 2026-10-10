@@ -5,9 +5,11 @@ import { DeleteDialog, GameDialog, ReminderDialog } from "./Dialogs";
 import { Banner, EmptyState, OperationStatus, WaitPanel } from "./Notices";
 import { RatingPicker } from "./RatingPicker";
 import { GamePicker, gameLabel } from "./GamePicker";
+import { GameMark } from "../ui/GameMark";
 import type { Game } from "../core";
 import { GameBar, SettingsHead, Toolbar } from "./Toolbar";
 import { TitleBar } from "./TitleBar";
+import { Icon } from "../ui/Icon";
 import type { core, RatingValue, Refusal, Result, Role, State } from "../core";
 import { Key, phaseKey, t } from "../i18n";
 import type { WindowControls } from "../window";
@@ -29,7 +31,7 @@ export function MainWindow({ state, api, controls, initial }: {
   api: Api;
   controls: WindowControls;
   /** For the states page only: start with a screen, a message or a picker already open. */
-  initial?: { settingsOpen?: boolean; message?: string; picking?: { id: string; role: Role } };
+  initial?: { settingsOpen?: boolean; message?: string; picking?: { id: string; role: Role }; pickingGame?: string; sortMenu?: boolean };
 }) {
   const [message, setMessage] = useState<string | null>(initial?.message ?? null);
   const [dialog, setDialog] = useState<Dialog | null>(null);
@@ -46,6 +48,13 @@ export function MainWindow({ state, api, controls, initial }: {
     const anchor = root.current?.querySelector<HTMLElement>(`[data-testid="rating-pick-${id}-${role}"]`);
     if (anchor) setPicking({ id, role, anchor });
   }, [initial?.picking]);
+
+  useEffect(() => {
+    if (!initial?.pickingGame) return;
+    const id = initial.pickingGame;
+    const anchor = root.current?.querySelector<HTMLElement>(`[data-testid="game-settings-${id}"]`);
+    if (anchor) setGamePicking({ id, anchor });
+  }, [initial?.pickingGame]);
 
   const busy = state.operation !== null;
   const found = state.launcher !== "not_found";
@@ -119,7 +128,7 @@ export function MainWindow({ state, api, controls, initial }: {
           addDisabled={busy || !found}
           onAdd={addAccount}
           onSave={saveCurrent}
-        /><GameBar state={state} onTab={tab => { setPicking(null); setGamePicking(null); api.setTab(tab); }} onSort={sort => api.setSort(sort)} onRefresh={() => run(api.syncRatings)} /></>
+        /><GameBar state={state} menuOpen={initial?.sortMenu} onTab={tab => { setPicking(null); setGamePicking(null); api.setTab(tab); }} onSort={sort => api.setSort(sort)} onRefresh={() => run(api.syncRatings)} /></>
       )}
 
       <div className="body">
@@ -153,11 +162,11 @@ export function MainWindow({ state, api, controls, initial }: {
         {settingsOpen ? (
           <SettingsScreen state={state} api={api} run={run} />
         ) : visibleAccounts.length === 0 && state.tab !== "all" ? (
-          <div className="empty" data-testid="empty-game-tab"><b>{t("emptyGameTab").replace("{game}", gameLabel(state.tab))}</b><p>{t("emptyGameHint")}</p><button className="btn btn--primary" data-testid="empty-game-add" disabled={busy || !found} onClick={addAccount}>{t("addAccount")}</button></div>
+          <div className="empty empty--tab" data-testid="empty-game-tab"><span className="empty-mark"><GameMark game={state.tab} size={28} /></span><b>{t("emptyGameTab").replace("{game}", gameLabel(state.tab))}</b><p>{t("emptyGameHint")}</p><button className="btn btn--primary" data-testid="empty-game-add" disabled={busy || !found} onClick={addAccount}><Icon name="i-plus" size={15} />{t("addAccount")}</button></div>
         ) : visibleAccounts.length === 0 ? (
           <EmptyState />
         ) : (
-          <ul className="cards">
+          <ul className={`cards${state.sort.startsWith("tank_") ? " sr-tank" : state.sort.startsWith("damage_") ? " sr-damage" : state.sort.startsWith("support_") ? " sr-support" : ""}`}>
             {visibleAccounts.map((a) => (
               <AccountRecord
                 key={a.id}

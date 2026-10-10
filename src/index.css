@@ -54,7 +54,7 @@ body { margin: 0; overflow: hidden; background: var(--ground); color: var(--text
   .tool-gap { flex: 1; }
   .tool-br { display: none; }
   .cats { display: flex; align-self: stretch; }
-  .cat { display: inline-flex; align-items: center; gap: 9px; padding: 0 2px; margin-right: 14px; color: var(--text-3); font-size: 13px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .cat { display: inline-flex; align-items: center; padding: 0 2px; margin-right: 14px; color: var(--text-3); font-size: 13px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; border-bottom: 2px solid transparent; margin-bottom: -1px; }
   .cat.is-on { color: var(--text); border-bottom-color: var(--accent); }
   .tool--set { gap: 14px; }
   .tool--set h1 { margin: 0; font-size: 18px; font-weight: 800; }
@@ -75,22 +75,14 @@ body { margin: 0; overflow: hidden; background: var(--ground); color: var(--text
   .btn--icon:hover { background: var(--raised); color: var(--text); }
   .btn-del:hover { color: var(--bad-text); background: rgba(221, 0, 0, .14); }
   .c-tools { display: flex; align-items: center; }
-  .gamebar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 8px 16px; border-bottom: 1px solid var(--line); }
-  .game-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
-  .game-tab { padding: 0 8px; font-size: 12px; }
-  .game-tab.is-on { background: var(--accent-soft); color: var(--accent-hi); }
-  .game-tab.is-empty { color: var(--text-3); }
-  .role-sort { display: inline-flex; align-items: center; gap: 4px; }
-  .role-sort[data-direction="asc"] .ic { transform: rotate(180deg); }
-  .game-picker { width: 300px; }
-  .game-option { width: 100%; justify-content: flex-start; margin: 2px 0; }
-  .game-option.is-on { background: var(--accent-soft); color: var(--accent-hi); }
-  .btn:focus-visible, .tag:focus-visible, .rt:focus-visible, .tb-sync:focus-visible, .tb-btn:focus-visible, .wc:focus-visible, .pk-div:focus-visible, .chip-btn:focus-visible { outline: 2px solid var(--accent-hi); outline-offset: 2px; }
+  .btn-gear { width: 28px; height: 28px; }
+  .btn-gear:hover, .btn-gear.is-open { color: var(--text); background: var(--raised); }
+  .btn:focus-visible, .gchip:focus-visible, .gp-i:focus-visible, .tag:focus-visible, .rt:focus-visible, .tb-sync:focus-visible, .tb-btn:focus-visible, .wc:focus-visible, .pk-div:focus-visible, .chip-btn:focus-visible { outline: 2px solid var(--accent-hi); outline-offset: 2px; }
   .back { padding-left: 10px; }
   .ow { flex: none; }
   .btn .ow { color: var(--text-3); transition: color .15s ease-out; }
   .btn:hover .ow { color: var(--text); }
-  .btn:disabled .ow { color: currentColor; }
+  .btn:disabled .ow, .btn.is-on .ow { color: currentColor; }
 
   .seg { display: inline-flex; padding: 2px; background: var(--panel); border-radius: 5px; gap: 2px; }
   .seg-b { position: relative; display: inline-flex; align-items: center; height: 28px; padding: 0 12px; border: 0; border-radius: 4px; background: none; color: var(--text-2); font-size: 12.5px; font-weight: 700; cursor: pointer; }
@@ -110,8 +102,8 @@ body { margin: 0; overflow: hidden; background: var(--ground); color: var(--text
   .c-top .btn-del { width: 28px; height: 28px; margin: -3px -3px 0 0; }
   .mark { display: grid; place-items: center; }
   .who { min-width: 0; }
-  .l1 { display: flex; align-items: center; gap: 8px; min-width: 0; }
-  .tag { padding: 0; border: 0; background: none; color: var(--text); font-family: var(--display); font-size: 16px; font-weight: 700; letter-spacing: .01em; cursor: copy; white-space: nowrap; border-radius: 3px; line-height: 1.3; }
+  .l1 { display: flex; align-items: center; gap: 8px; min-width: 0; overflow: hidden; }
+  .tag { padding: 0; border: 0; background: none; color: var(--text); font-family: var(--display); font-size: 16px; font-weight: 700; letter-spacing: .01em; cursor: copy; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; border-radius: 3px; line-height: 1.3; }
   .tag:hover { color: var(--accent-hi); }
   .tag--none { cursor: default; color: var(--text-3); }
   .l2 { display: flex; align-items: center; gap: 8px; min-height: 20px; margin-top: 2px; font-size: 12.5px; color: var(--text-3); min-width: 0; }
@@ -122,7 +114,7 @@ body { margin: 0; overflow: hidden; background: var(--ground); color: var(--text
   .chip--warn { color: var(--warn-text); background: rgba(255, 180, 0, .13); }
   .chip--bad { color: var(--bad-text); background: rgba(221, 0, 0, .17); }
   .chip--busy { color: var(--accent-hi); background: var(--accent-soft); }
-  .copied { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; color: var(--ok-text); }
+  .copied { flex: none; display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; color: var(--ok-text); }
 
   /* rating cell: one centred column, so the badge and its caption share an axis whatever the rank
      is. The role mark sits at the cell's left edge, out of the flow: it names the column without
@@ -153,6 +145,14 @@ body { margin: 0; overflow: hidden; background: var(--ground); color: var(--text
   .c-acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: auto; }
   .c-acts .btn--act { width: 100%; height: 30px; padding: 0 8px; }
   .btn--wide { grid-column: 1 / -1; }
+  .btn-pick { color: var(--text-2); background: none; box-shadow: inset 0 0 0 1px var(--ring); }
+  .btn-pick:hover { background: var(--raised); box-shadow: inset 0 0 0 1px #5a6178; color: var(--text); }
+  .btn-pick .ic { color: var(--text-3); }
+  /* every card is as tall as the tallest; where an Overwatch card keeps its ranks the other games keep their plate */
+  .c-plate { flex: 1; min-height: 62px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; border-radius: 5px; background: rgba(15, 17, 22, .55); color: var(--text-3); font-size: 12.5px; font-weight: 700; }
+  .c-plate .gm { opacity: .85; }
+  .c-plate--none { background: none; border: 1px dashed var(--line-2); color: #5f6678; font-weight: 600; }
+  .sr-tank .rt[data-role="tank"], .sr-damage .rt[data-role="damage"], .sr-support .rt[data-role="support"] { background: rgba(20, 142, 255, .09); }
 
   /* narrow window: two cards across, the toolbar in two tiers */
   @container win (max-width: 700px) {
@@ -160,11 +160,99 @@ body { margin: 0; overflow: hidden; background: var(--ground); color: var(--text
     .tool-gap { display: none; }
     .cats { align-self: center; }
     .cat { margin-right: 0; }
-    .seg { margin-left: auto; }
     .tool-br { display: block; flex-basis: 100%; height: 0; }
     .tool .btn--save, .tool .btn--primary { flex: 1 1 0; }
     .cards { padding: 12px 12px 18px; gap: 10px; }
     .stack { padding: 12px 12px 0; }
+  }
+
+  /* ---- game marks: one colour, the colour of the text around them ---- */
+  .gm { display: block; flex: none; background: currentColor; -webkit-mask: var(--gm) center / contain no-repeat; mask: var(--gm) center / contain no-repeat; }
+
+  /* ---- the head of the list: one chip per game, the refresh, the sorts. No rule, no band: it is not a second toolbar ---- */
+  .gamebar { position: relative; z-index: 8; flex: none; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; padding: 12px 16px 0; }
+  .gchips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .gchip { display: inline-flex; align-items: center; gap: 7px; height: 28px; padding: 0 9px 0 8px; border: 1px solid var(--line-2); border-radius: 14px; background: none; color: var(--text-2); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: background-color .15s ease-out, border-color .15s ease-out; }
+  .gchip:first-child { padding-left: 11px; }
+  .gchip-short { display: none; }
+  .sorts .seg-b { padding: 0 8px; }
+  .gchip:hover { border-color: #4b5266; color: var(--text); }
+  .gchip .gm, .gchip .ow { color: var(--text-3); }
+  .gchip em { font-style: normal; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text-3); }
+  .gchip.is-on { border-color: rgba(20, 142, 255, .55); background: var(--accent-soft); color: #fff; }
+  .gchip.is-on .gm, .gchip.is-on .ow { color: var(--accent-hi); }
+  .gchip.is-on em { color: var(--text-2); }
+  /* a game with no accounts stays on the row, muted and without a number: it shows what the program supports */
+  .gchip--empty { border-style: dashed; color: var(--text-3); }
+  .gchip--empty .gm, .gchip--empty .ow { color: #5f6678; }
+  .gchip--empty:hover { color: var(--text-2); }
+  .gchip--empty.is-on { border-style: solid; color: #fff; }
+  .btn-rfr { flex: none; margin-left: auto; width: 30px; height: 30px; border-radius: 15px; background: var(--accent-soft); color: var(--accent-hi); }
+  .btn-rfr:hover { background: rgba(20, 142, 255, .24); color: #fff; }
+  .btn-rfr:disabled { opacity: 1; background: none; color: var(--text-2); cursor: default; }
+
+  /* the sorts: two switches and, in the Overwatch tab, the pill of roles; one menu button when the window is narrow */
+  .sortm-wrap { position: relative; display: flex; align-items: center; margin-left: auto; }
+  .btn-rfr + .sortm-wrap { margin-left: 0; }
+  .sortm-b { display: none; gap: 5px; height: 30px; padding: 0 9px 0 10px; background: var(--panel); }
+  .sortm-b:hover { background: var(--raised); }
+  .sortm-b .ic { color: var(--text-3); }
+  .sortm-b.is-set .ic { color: var(--accent-hi); }
+  .sortm-b img { width: 16px; height: 15px; object-fit: contain; }
+  .sorts { display: flex; align-items: center; gap: 6px; }
+  .seg--role .seg-b { justify-content: center; gap: 3px; width: 34px; padding: 0; }
+  .seg--role .seg-b img { display: block; width: 16px; height: 15px; object-fit: contain; opacity: .62; transition: opacity .15s ease-out; }
+  .seg--role .seg-b:hover img, .seg--role .seg-b.is-on img { opacity: 1; }
+  .seg--role .seg-b .ic { color: var(--accent-hi); }
+  .seg--role .seg-b[data-direction="asc"] .ic { transform: rotate(180deg); }
+  .seg--role .seg-b:focus-visible { outline: 2px solid var(--accent-hi); outline-offset: 2px; }
+  .sorts-h, .role-name, .role-dir { display: none; }
+
+  /* the pop-up that sets an account's game */
+  .gp { position: absolute; z-index: 20; width: 262px; padding: 6px; background: #1d2029; border: 1px solid var(--line-2); border-radius: 8px; box-shadow: 0 16px 44px rgba(0, 0, 0, .6); color: var(--text); }
+  .gp-h { display: block; padding: 4px 8px 6px; line-height: 1.25; }
+  .gp-h b { display: block; font-size: 13.5px; font-weight: 800; }
+  .gp-h span { font-size: 12px; color: var(--text-3); }
+  .gp-i { display: flex; align-items: center; gap: 9px; width: 100%; height: 32px; padding: 0 8px; border: 0; border-radius: 4px; background: none; color: var(--text-2); font: inherit; font-size: 13px; font-weight: 700; text-align: left; white-space: nowrap; cursor: pointer; }
+  .gp-i:hover:enabled { background: var(--raised); color: var(--text); }
+  .gp-i:disabled { opacity: .5; cursor: not-allowed; }
+  .gp-i .gm, .gp-i .ow { color: var(--text-3); }
+  .gp-i.is-on { background: var(--accent-soft); color: #fff; }
+  .gp-i.is-on .gm, .gp-i.is-on .ow { color: var(--text-2); }
+  .opt-dot { flex: none; width: 14px; height: 14px; border: 1.5px solid #4a5062; border-radius: 50%; }
+  .gp-i.is-on .opt-dot { border-color: var(--accent-hi); background: radial-gradient(circle, var(--accent-hi) 0 3.5px, transparent 4px); }
+  .gp-mark { flex: none; display: flex; align-items: center; width: 28px; }
+  .gp hr { border: 0; height: 1px; margin: 4px 2px; background: var(--line); }
+  .gp-note { margin: 2px 8px 4px; font-size: 12px; line-height: 1.4; color: var(--text-3); }
+
+  /* an empty game tab */
+  .empty--tab { margin: 28px 16px; padding: 34px 24px; }
+  .empty-mark { display: grid; place-items: center; color: var(--text-3); }
+  .empty--tab .btn { margin-top: 12px; }
+
+  /* narrow window: the toolbar in two tiers, the sorts folded into one menu */
+  @container win (max-width: 700px) {
+    .gamebar { padding: 10px 12px 0; gap: 6px; }
+    .gchips { gap: 5px; }
+    .gchip { padding: 0 7px; gap: 5px; }
+    .gchip:first-child { padding-left: 9px; }
+    .gchip-name:has(+ .gchip-short) { display: none; }
+    .gchip-short { display: inline; }
+    .sortm-b { display: inline-flex; }
+    .sorts { display: none; position: absolute; z-index: 30; top: calc(100% + 6px); right: 0; width: 304px; padding: 6px; flex-direction: column; align-items: stretch; gap: 0; background: #1d2029; border: 1px solid var(--line-2); border-radius: 8px; box-shadow: 0 16px 44px rgba(0, 0, 0, .6); }
+    .sorts.is-open { display: flex; }
+    .sorts .seg { margin: 0; display: flex; flex-direction: column; padding: 0; gap: 0; background: none; }
+    .sorts .seg + .seg { margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--line); }
+    .sorts .seg-b, .seg--role .seg-b { width: 100%; height: 32px; padding: 0 8px; justify-content: flex-start; gap: 9px; font-size: 13px; color: var(--text-2); }
+    .sorts .seg-b::before { content: ""; flex: none; width: 14px; height: 14px; border: 1.5px solid #4a5062; border-radius: 50%; }
+    .sorts .seg-b.is-on { background: var(--accent-soft); color: #fff; }
+    .sorts .seg-b.is-on::before { border-color: var(--accent-hi); background: radial-gradient(circle, var(--accent-hi) 0 3.5px, transparent 4px); }
+    .sorts .seg-b:hover:not(.is-on) { background: var(--raised); color: var(--text); }
+    .sorts-h { display: block; margin: 4px 8px 2px; font-size: 12px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: var(--text-3); }
+    .role-name { display: inline; }
+    .role-dir { display: inline; margin-left: auto; white-space: nowrap; font-style: normal; font-size: 12px; font-weight: 600; color: var(--text-3); }
+    .seg--role .seg-b .ic { display: none; }
+    .empty--tab { margin: 18px 12px; padding: 26px 18px; }
   }
 
   /* ---- banners, wait panel, empty state ---- */
@@ -240,7 +328,7 @@ body { margin: 0; overflow: hidden; background: var(--ground); color: var(--text
   .opt.is-on { border-color: var(--accent); background: var(--accent-soft); color: #fff; }
   .opt input:checked { border-color: var(--accent-hi); background: radial-gradient(circle, var(--accent-hi) 0 4px, transparent 4.5px); }
   .opt:has(input:focus-visible) { outline: 2px solid var(--accent-hi); outline-offset: 2px; }
-  .set-foot { display: flex; align-items: center; gap: 10px; color: var(--text-3); font-size: 13px; }
+  .set-foot { display: flex; align-items: center; gap: 10px; margin-top: 22px; color: var(--text-3); font-size: 13px; }
   .set-foot p { margin: 0; }
   .set-foot .btn--icon { color: var(--text-2); }
   .set-ver { margin-left: auto; }
