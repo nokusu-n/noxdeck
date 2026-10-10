@@ -56,6 +56,7 @@ export type State = {
   notice: null | "data_file_reset";
   lang: "ru" | "en" | "it";
   settings: {
+    hideEmails: boolean;
     closeLauncher: boolean;
     showRatings: boolean;
     autoRatings: boolean;
@@ -78,6 +79,7 @@ async function call<T = void>(cmd: string, args?: Record<string, unknown>): Prom
 }
 
 export const core = {
+  setHideEmails: (value: boolean) => call("set_hide_emails", { value }),
   saveDiagnostics: () => call<"saved" | "cancelled" | "failed">("save_diagnostics"),
   setCloseLauncher: (value: boolean) => call("set_close_launcher", { value }),
   openRepository: () => call("open_repository"),

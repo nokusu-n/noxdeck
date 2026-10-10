@@ -33,7 +33,7 @@ export const base: State = {
   dismissed: { rememberLogin: true, logoutWarning: true },
   notice: null,
   lang: "ru",
-  settings: { closeLauncher: true, showRatings: true, autoRatings: true, autostart: true, afterStart: "tray", showGameStart: true, language: null },
+  settings: { hideEmails: false, closeLauncher: true, showRatings: true, autoRatings: true, autostart: true, afterStart: "tray", showGameStart: true, language: null },
   ask: null,
 };
 

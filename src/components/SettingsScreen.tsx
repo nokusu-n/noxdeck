@@ -4,7 +4,7 @@ import { t } from "../i18n";
 import { Icon } from "../ui/Icon";
 import { Banner } from "./Notices";
 
-type Api = Pick<typeof core, "setAutostart" | "setAfterStart" | "setShowGameStart" | "setCloseLauncher" | "setShowRatings" | "setAutoRatings" | "setLanguage" | "openRepository" | "saveDiagnostics">;
+type Api = Pick<typeof core, "setAutostart" | "setAfterStart" | "setShowGameStart" | "setCloseLauncher" | "setShowRatings" | "setAutoRatings" | "setLanguage" | "openRepository" | "saveDiagnostics" | "setHideEmails">;
 
 function Switch({ testid, label, note, noteTestid, checked, onChange }: {
   testid: string; label: string; note?: string; noteTestid?: string; checked: boolean; onChange: (value: boolean) => void;
@@ -58,6 +58,7 @@ export function SettingsScreen({ state, api, run }: {
   return (
     <section data-testid="settings" className="set">
       <Group title={t("sectionProgram")}>
+        <Switch testid="set-hide-emails" label={t("hideEmails")} checked={s.hideEmails} onChange={(v) => run(() => api.setHideEmails(v))} />
         <Switch testid="set-autostart" label={t("autostart")} checked={s.autostart} onChange={(v) => run(() => api.setAutostart(v))} />
         <div className="set-row set-row--stack" role="group" aria-labelledby="after-title">
           <span className="set-text">

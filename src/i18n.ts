@@ -5,6 +5,7 @@
 const gameName = "Overwatch";
 
 const en = {
+  hideEmails: "Hide account e-mails",
   r_launcher_close_timeout: "Battle.net did not close in time. Close it yourself and try again.",
   saveDiagnostics: "Save diagnostics",
   diagnosticsNote: "Save a file to help investigate a problem. It holds no e-mails, BattleTags or passwords.",
@@ -115,6 +116,7 @@ const en = {
 };
 
 const ru: typeof en = {
+  hideEmails: "Скрывать e-mail аккаунтов",
   r_launcher_close_timeout: "Battle.net не закрылся вовремя. Закройте его сами и повторите.",
   saveDiagnostics: "Сохранить диагностику",
   diagnosticsNote: "Файл поможет разобраться в проблеме. В нём нет e-mail, BattleTag и паролей.",
@@ -225,6 +227,7 @@ const ru: typeof en = {
 };
 
 const it: typeof en = {
+  hideEmails: "Nascondi le e-mail degli account",
   r_launcher_close_timeout: "Battle.net non si è chiuso in tempo. Chiudilo e riprova.",
   saveDiagnostics: "Salva diagnostica",
   diagnosticsNote: "Salva un file per aiutare a capire il problema. Non contiene e-mail, BattleTag o password.",

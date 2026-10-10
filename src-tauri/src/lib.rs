@@ -184,6 +184,7 @@ pub struct DismissedView {
 #[derive(Serialize, Clone, Debug, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct SettingsView {
+    pub hide_emails: bool,
     pub close_launcher: bool,
     pub auto_ratings: bool,
     pub show_ratings: bool,
@@ -278,6 +279,14 @@ pub(crate) fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
 }
 
 impl Core {
+    pub fn set_hide_emails(&self, value: bool) {
+        {
+            let mut inner = lock(&self.inner);
+            inner.settings.hide_emails = value;
+            self.save_settings(&inner);
+        }
+        self.publish();
+    }
     pub fn open_repository(&self) -> Result<(), Refusal> {
         self.shell.open_url("https://github.com/nokusu-n/noxdeck").map_err(|_| Refusal::RepositoryOpenFailed)
     }
@@ -449,6 +458,11 @@ mod commands {
     use tauri::State as Managed;
 
     type Shared<'a> = Managed<'a, Arc<Core>>;
+
+    #[tauri::command]
+    pub fn set_hide_emails(core: Shared, value: bool) {
+        core.set_hide_emails(value);
+    }
 
     #[tauri::command(async)]
     pub fn save_diagnostics(core: Shared) -> diagnostics::SaveResult {
@@ -622,6 +636,7 @@ pub fn run() {
         .on_window_event(shell::window_event)
         .invoke_handler(tauri::generate_handler![
             commands::get_state,
+            commands::set_hide_emails,
             commands::save_diagnostics,
             commands::open_repository,
             commands::set_rating,

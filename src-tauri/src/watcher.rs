@@ -163,7 +163,7 @@ impl Core {
                 ratings: a.ratings.clone(),
                 id: a.id.clone(),
                 battletag: a.battletag.clone(),
-                email: a.email.clone(),
+                email: a.email.as_deref().map(|email| if inner.settings.hide_emails { settings::mask_email(email) } else { email.to_owned() }),
                 login_state: a.login_state,
                 last_login_at: a.last_login_at.clone(),
                 is_current: current.as_deref() == Some(a.id.as_str()),
@@ -212,6 +212,7 @@ impl Core {
             notice: inner.notice.then_some("data_file_reset"),
             lang: inner.settings.resolved_language(&self.locale),
             settings: SettingsView {
+                hide_emails: inner.settings.hide_emails,
                 close_launcher: inner.settings.close_launcher,
                 auto_ratings: inner.settings.auto_ratings,
                 show_ratings: inner.settings.show_ratings,

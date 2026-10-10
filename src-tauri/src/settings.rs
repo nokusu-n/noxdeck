@@ -49,6 +49,8 @@ pub struct Settings {
     #[serde(default = "enabled")]
     pub auto_ratings: bool,
     #[serde(default)]
+    pub hide_emails: bool,
+    #[serde(default)]
     pub language: Option<Language>,
 }
 
@@ -60,8 +62,15 @@ impl Default for Settings {
             close_launcher: true,
             show_ratings: true,
             auto_ratings: true,
+            hide_emails: false,
         }
     }
+}
+
+pub fn mask_email(email: &str) -> String {
+    let Some((local, domain)) = email.split_once('@') else { return "****".into(); };
+    let count = if local.chars().count() <= 2 { 1 } else { 2 };
+    format!("{}****@{domain}", local.chars().take(count).collect::<String>())
 }
 
 impl Settings {

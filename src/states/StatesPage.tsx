@@ -15,6 +15,7 @@ import "./states.css";
 const ok = async () => ({ ok: true as const, value: undefined });
 // Stand-ins for the core: every command answers "done" and changes nothing.
 const api: Api = {
+  setHideEmails: ok,
   saveDiagnostics: async () => ({ ok: true as const, value: "cancelled" as const }),
   setCloseLauncher: ok, openRepository: ok, setRating: ok, setShowRatings: ok, setAutoRatings: ok, syncRatings: ok,
   getState: async () => base, addAccount: ok, cancelOperation: ok, saveCurrent: async () => ({ ok: true as const, value: { id: "a1" } }),

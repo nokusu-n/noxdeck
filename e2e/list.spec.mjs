@@ -230,10 +230,11 @@ async function checkLanguage(lang) {
     assert.equal(await h.el(id).getAttribute("aria-label"), t(key));
   }
   const settingKeys = {
+    "set-hide-emails": "hideEmails",
     "set-autostart": "autostart", "set-after-stay": "afterStay", "set-after-tray": "afterTray", "set-after-close": "afterClose",
     "set-show-game": "showGame", "set-show-ratings": "showRatings", "set-auto-ratings": "autoRatings", "set-close-launcher": "closeLauncher",
   };
-  for (const id of ["set-autostart", "set-after-stay", "set-after-tray", "set-after-close", "set-show-game", "set-show-ratings", "set-auto-ratings", "set-close-launcher"]) {
+  for (const id of ["set-hide-emails", "set-autostart", "set-after-stay", "set-after-tray", "set-after-close", "set-show-game", "set-show-ratings", "set-auto-ratings", "set-close-launcher"]) {
     await h.waitFor(id); seen.add(id);
     const label = await app.browser.execute(id => document.querySelector(`[data-testid="${id}"]`).closest("label").textContent, id);
     assert.equal(cyrillic.test(label), lang === "ru", `${lang}: ${id} label is translated`);
@@ -253,6 +254,22 @@ async function checkLanguage(lang) {
   }
   if (lang === "it" && process.env.NOXDECK_CAPTURE_DIR) {
     await app.browser.saveScreenshot(`${process.env.NOXDECK_CAPTURE_DIR}/settings-it.png`);
+  }
+  if (lang === "en") {
+    assert.equal(await h.el("set-hide-emails").isSelected(), false);
+    await h.click("set-hide-emails");
+    await h.tick(async () => app.settingsFile().hide_emails === true, "e-mail hiding setting was not saved");
+    if (process.env.NOXDECK_CAPTURE_DIR) {
+      await app.browser.setWindowSize(960, 960);
+      await app.browser.saveScreenshot(`${process.env.NOXDECK_CAPTURE_DIR}/settings-en.png`);
+      await app.browser.setWindowSize(960, 720);
+    }
+    await h.click("settings-back");
+    assert.equal(await h.text(`email-${A.id}`), "us****@example.com");
+    assert.equal(await h.el(`email-${A.id}`).getAttribute("title"), "us****@example.com");
+    if (process.env.NOXDECK_CAPTURE_DIR) await app.browser.saveScreenshot(`${process.env.NOXDECK_CAPTURE_DIR}/main-masked-en.png`);
+    await h.click("settings-open");
+    await h.click("set-hide-emails");
   }
   await h.click("settings-back");
   for (const role of ["tank", "damage", "support"]) {
@@ -336,7 +353,7 @@ for (const lang of ["en", "ru", "it"]) {
   test(`all languages: every element of the contract is there and in ${lang}`, async () => {
     const seen = await checkLanguage(lang);
     const contract = ["empty-state", "add-account", "save-current", "message", "remind-dialog", "remind-dont-show", "remind-continue", "waiting", "cancel", "sort-last-login", "sort-battletag", "delete-dialog", "delete-confirm", "delete-cancel", "logout-dialog", "logout-dont-show", "logout-continue", "launcher-not-found", "version", "settings-open", "settings", "settings-back", "set-autostart", "set-after-stay", "set-after-tray", "set-after-close", "set-show-game", "set-lang-ru", "set-lang-en"];
-    for (const id of [...contract, "set-lang-it", "save-diagnostics", "diagnostics-note"]) assert.ok(seen.has(id), `${id} was seen`);
+    for (const id of [...contract, "set-lang-it", "save-diagnostics", "diagnostics-note", "set-hide-emails"]) assert.ok(seen.has(id), `${id} was seen`);
   });
 }
 
