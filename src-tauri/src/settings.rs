@@ -57,8 +57,6 @@ pub struct Settings {
     pub tab_sorts: std::collections::BTreeMap<Tab, Sort>,
     #[serde(default)]
     pub tab: Tab,
-    #[serde(default)]
-    pub tab_version: Option<String>,
     pub schema: u32,
     pub sort: Sort,
     pub dismissed: Dismissed,
@@ -80,7 +78,7 @@ impl Default for Settings {
     fn default() -> Self {
         Settings {
             tab_sorts: Default::default(),
-            tab: Tab::All, tab_version: None,
+            tab: Tab::All,
             schema: 1, sort: Sort::LastLogin, dismissed: Dismissed::default(),
             after_start: AfterStart::Tray, legacy_show_game_start: None, language: None,
             close_launcher: true,

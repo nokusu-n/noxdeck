@@ -43,13 +43,13 @@ fn startup_state_reads_the_shell_and_never_persists_a_claim_in_settings() {
     let startup = Arc::new(Startup::default());
     startup.present.store(true, Ordering::SeqCst);
     let core = core(&f, &startup);
+    let saved_before = std::fs::read(f.paths.data.join("settings.json")).ok();
     assert!(core.state().settings.autostart);
     core.set_autostart(false).unwrap();
     assert!(!core.state().settings.autostart);
     core.set_autostart(true).unwrap();
     assert!(core.state().settings.autostart);
-    let saved: serde_json::Value = serde_json::from_slice(&std::fs::read(f.paths.data.join("settings.json")).unwrap()).unwrap();
-    assert!(saved.get("autostart").is_none());
+    assert_eq!(std::fs::read(f.paths.data.join("settings.json")).ok(), saved_before);
     startup.present.store(false, Ordering::SeqCst);
     core.tick();
     assert!(!core.state().settings.autostart);

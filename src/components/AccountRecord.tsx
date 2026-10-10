@@ -13,6 +13,7 @@ type Props = {
   /** The step of the action running on this record, if one is. */
   phase: Phase | null;
   operationKind?: "start" | "game" | null;
+  cancellable?: boolean;
   onCancel?: () => void;
   /** Some launcher action runs, so no other starts. */
   busy: boolean;
@@ -49,7 +50,7 @@ function lookOf(a: Account, loggingIn: boolean, phase: Phase | null, started: bo
   return { id: "ready", kind: "idle", mark: "m-idle", chip: null };
 }
 
-export function AccountRecord({ account: a, loggingIn, phase, operationKind, onCancel, busy, launcherFound, autoRatings, pickingRole, onPickRating, onStart, onDelete, onGame, onPickGame, pickingGame, preview }: Props) {
+export function AccountRecord({ account: a, loggingIn, phase, operationKind, cancellable = false, onCancel, busy, launcherFound, autoRatings, pickingRole, onPickRating, onStart, onDelete, onGame, onPickGame, pickingGame, preview }: Props) {
   const [copied, setCopied] = useState(preview === "copied");
   const started = a.lastOutcome === "game_started";
   const look = lookOf(a, loggingIn, phase, started);
@@ -101,14 +102,14 @@ export function AccountRecord({ account: a, loggingIn, phase, operationKind, onC
       </div>
       <Ratings account={a} autoRatings={autoRatings} openRole={pickingRole} onOpen={onPickRating} />
       <div className="c-acts">
-        {loggingIn && operationKind === "start" ? (
+        {loggingIn && operationKind === "start" && cancellable ? (
           <button data-testid={`start-${a.id}`} className={`btn btn--act${wide}`} onClick={onCancel}>{t("cancel")}</button>
         ) : a.isCurrent ? (
           <button data-testid={`current-${a.id}`} className={`btn btn--act is-on${wide}`} disabled aria-current="true" title={t("openInLauncherTip")}>{t("start")}</button>
         ) : (
           <button data-testid={`start-${a.id}`} className={`btn btn--act${wide}`} disabled={startBlocked} title={reason ?? t("startTip")} onClick={onStart}>{t("start")}</button>
         )}
-        {a.game === "none" ? <button data-testid={`choose-game-${a.id}`} className="btn btn--act" disabled={loggingIn || a.isInGame} aria-haspopup="menu" onClick={e => onPickGame?.(e.currentTarget)}>{t("chooseGame")}</button> : showGameStart && (loggingIn && operationKind === "game" ? (
+        {a.game === "none" ? <button data-testid={`choose-game-${a.id}`} className="btn btn--act" disabled={loggingIn || a.isInGame} aria-haspopup="menu" onClick={e => onPickGame?.(e.currentTarget)}>{t("chooseGame")}</button> : showGameStart && (loggingIn && operationKind === "game" && cancellable ? (
           <button data-testid={`${a.isInGame ? "ingame" : "game"}-${a.id}`} className="btn btn--act" onClick={onCancel}>{t("cancel")}</button>
         ) : a.isInGame ? (
           <button data-testid={`ingame-${a.id}`} className="btn btn--act is-on" disabled={startBlocked} aria-current="true" title={reason ?? t("inGameTip")} onClick={onGame}><OverwatchMark />{t("startGame")}</button>

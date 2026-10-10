@@ -94,7 +94,7 @@ export async function startApp(opts = {}) {
   copyFileSync(FAKE, join(d.game, "FakeGame.exe"));
   if (opts.scenario) writeFileSync(join(d.install, "scenario.json"), JSON.stringify(opts.scenario));
   if (opts.accounts) writeFileSync(join(d.data, "accounts.json"), JSON.stringify({ schema: 2, accounts: opts.accounts }));
-  writeFileSync(join(d.data, "settings.json"), JSON.stringify({ schema: 1, sort: "last_login", dismissed: { remember_login: false, logout_warning: false }, after_start: "stay", tab_version: VERSION, ...opts.settings }));
+  writeFileSync(join(d.data, "settings.json"), JSON.stringify({ schema: 1, sort: "last_login", dismissed: { remember_login: false, logout_warning: false }, after_start: "stay", ...opts.settings }));
   if (opts.rawAccounts) writeFileSync(join(d.data, "accounts.json"), opts.rawAccounts);
 
   const env = {

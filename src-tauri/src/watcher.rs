@@ -33,6 +33,10 @@ impl Core {
             inner.launcher_running = snapshot.launcher_running;
             inner.game_running = snapshot.game_running;
             inner.game_pids = snapshot.game_pids.clone();
+            // This lock also guards accepting a cancel; the first observation wins.
+            if let Some(op) = inner.operation.as_mut().filter(|op| op.kind == OpKind::Game) {
+                op.game_appeared |= snapshot.game_pids.iter().any(|pid| !op.previous_game_pids.contains(pid));
+            }
             inner.game_window_pids = snapshot.game_window_pids.clone();
             let was_in_game = inner.game.confirmed.clone();
             if polled.new_file {
@@ -221,7 +225,7 @@ impl Core {
                 kind: o.kind,
                 account_id: o.account_id.clone(),
                 phase: o.phase,
-                cancellable: o.kind != OpKind::Add || o.phase == Phase::WaitingLogin,
+                cancellable: o.cancellable(),
             }),
             accounts,
             sort,

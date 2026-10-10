@@ -250,6 +250,17 @@ pub(crate) struct Operation {
     pub previous_game_pids: Vec<u32>,
     pub began: Instant,
     pub hidden_started: bool,
+    pub game_appeared: bool,
+}
+
+impl Operation {
+    pub fn cancellable(&self) -> bool {
+        match self.kind {
+            OpKind::Add => self.phase == Phase::WaitingLogin,
+            OpKind::Start => true,
+            OpKind::Game => !self.game_appeared,
+        }
+    }
 }
 
 pub(crate) struct Inner {
@@ -377,11 +388,6 @@ impl Core {
         let (mut registry, reset_a) = Registry::load(&paths.data.join("accounts.json"));
         let (mut settings, reset_s) = Settings::load(&paths.data.join("settings.json"));
         settings.tab_sorts.entry(settings::Tab::All).or_insert(settings.sort);
-        if settings.tab_version.as_deref() != Some(version) {
-            settings.tab = settings::Tab::All;
-            settings.tab_version = Some(version.to_owned());
-            let _ = settings.save(&paths.data.join("settings.json"));
-        }
         if registry.migrate(settings.legacy_show_game_start.unwrap_or(true)) && registry.save(&paths.data.join("accounts.json")).is_ok() {
             settings.legacy_show_game_start = None;
             let _ = settings.save(&paths.data.join("settings.json"));

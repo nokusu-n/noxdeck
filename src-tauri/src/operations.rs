@@ -137,6 +137,7 @@ impl Core {
                 previous_game_pids: if kind == OpKind::Game { inner.game_pids.clone() } else { vec![] },
                 began: Instant::now(),
                 hidden_started: false,
+                game_appeared: false,
             });
             install
         };
@@ -383,6 +384,10 @@ impl Core {
                     && !inner.game_pids.iter().any(|pid| !op.previous_game_pids.contains(pid)))
             };
             if stop { let _ = self.stop_launcher_journalled(&install); self.tick(); }
+            let hidden_started = lock(&self.inner).operation.as_ref().is_some_and(|op| op.hidden_started);
+            if hidden_started && self.processes.launcher_running(&install) {
+                self.processes.show_windows_no_activate(&install);
+            }
             self.finish_operation(false);
             return;
         }
@@ -692,12 +697,13 @@ impl Core {
     }
 
     pub fn cancel_operation(&self) {
+        self.tick();
         let inner = lock(&self.inner);
         let cancellable = inner
             .operation
             .as_ref()
-            .is_some_and(|o| if o.kind == OpKind::Add { o.phase == Phase::WaitingLogin }
-                else { o.began.elapsed() >= self.timing.cancel_guard });
+            .is_some_and(|o| o.cancellable()
+                && (o.kind == OpKind::Add || o.began.elapsed() >= self.timing.cancel_guard));
         if cancellable {
             self.cancel.store(true, Ordering::SeqCst);
         }

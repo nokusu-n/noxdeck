@@ -31,16 +31,33 @@ fn filtering_and_empty_tabs_keep_all_accounts_available_for_counts_and_tray() {
 }
 
 #[test]
-fn a_tab_survives_restart_and_returns_to_all_once_after_a_version_change() {
+fn a_stored_tab_survives_restart_and_later_versions() {
     let f = two();
     let core = f.core();
     assert_eq!(core.state().tab, Tab::All);
     core.set_tab(Tab::CallOfDuty);
     assert_eq!(f.core().state().tab, Tab::CallOfDuty);
     let updated = Core::new(f.paths.clone(), fast(), f.procs.clone(), Box::new(|_| {}), "next-version", f.shell.clone());
-    assert_eq!(updated.state().tab, Tab::All);
+    assert_eq!(updated.state().tab, Tab::CallOfDuty);
     updated.set_tab(Tab::Overwatch);
     assert_eq!(Settings::load(&f.paths.data.join("settings.json")).0.tab, Tab::Overwatch);
+    let saved: serde_json::Value = serde_json::from_slice(&std::fs::read(f.paths.data.join("settings.json")).unwrap()).unwrap();
+    assert!(saved.get("tab_version").is_none());
+}
+
+#[test]
+fn settings_without_a_tab_open_all_and_ignore_a_legacy_version_marker() {
+    for version in ["0.6.0", "0.7.0", "next-version"] {
+        let f = Fake::new();
+        let core = Core::new(f.paths.clone(), fast(), f.procs.clone(), Box::new(|_| {}), version, f.shell.clone());
+        assert_eq!(core.state().tab, Tab::All);
+        std::fs::write(f.paths.data.join("settings.json"), r#"{"schema":1,"sort":"last_login","dismissed":{"remember_login":false,"logout_warning":false}}"#).unwrap();
+        let core = Core::new(f.paths.clone(), fast(), f.procs.clone(), Box::new(|_| {}), version, f.shell.clone());
+        assert_eq!(core.state().tab, Tab::All);
+        std::fs::write(f.paths.data.join("settings.json"), r#"{"schema":1,"sort":"last_login","dismissed":{"remember_login":false,"logout_warning":false},"tab":"call_of_duty","tab_version":"0.7.0"}"#).unwrap();
+        let core = Core::new(f.paths.clone(), fast(), f.procs.clone(), Box::new(|_| {}), version, f.shell.clone());
+        assert_eq!(core.state().tab, Tab::CallOfDuty);
+    }
 }
 
 #[test]

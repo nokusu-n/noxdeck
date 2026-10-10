@@ -76,17 +76,65 @@ fn cancelling_a_reused_launcher_through_the_tray_leaves_it_running() {
 }
 
 #[test]
-fn cancelling_after_a_game_appears_leaves_both_processes_alone() {
+fn cancelling_after_a_game_appears_is_ignored_and_finishes_normally() {
+    for close_launcher in [true, false] {
+        let f = seeded();
+        std::fs::write(f.paths.data.join("settings.json"), serde_json::to_string(&noxdeck_lib::settings::Settings {
+            close_launcher, ..Default::default()
+        }).unwrap()).unwrap();
+        login_on_start(&f);
+        f.procs.set_game_window(false);
+        let procs = f.procs.clone();
+        f.procs.on_launch(move || procs.set_game(true));
+        let mut timing = fast();
+        timing.game_settle = Duration::from_millis(300);
+        let core = noxdeck_lib::Core::new(f.paths.clone(), timing, f.procs.clone(), Box::new(|_| {}), "test", f.shell.clone());
+        core.start_game(ID, false).unwrap();
+        wait_for(&core, "game process", |s| s.game_running && s.operation.is_some());
+        assert!(!core.state().operation.unwrap().cancellable);
+        let item = tray::menu(&core.state()).into_iter().find(|i| i.id == format!("acc-{ID}")).unwrap();
+        assert!(!item.enabled);
+        assert_ne!(item.label, "Cancel");
+        std::thread::sleep(core.timing.cancel_guard);
+        core.cancel_operation();
+        f.procs.set_game_window(true);
+        wait_idle(&core);
+        assert!(core.state().game_running);
+        assert_eq!(account(&core.state(), ID).last_outcome, Some("game_started"));
+        assert_eq!(f.procs.launcher_running(&f.install), !close_launcher);
+        assert!(!f.procs.calls().iter().any(|c| c == "stop_game"));
+        if !close_launcher {
+            assert!(!f.procs.is_hidden());
+            assert!(f.procs.calls().iter().any(|c| c == "show_windows_no_activate"));
+            assert!(!f.procs.calls().iter().any(|c| c == "show_windows"));
+        }
+    }
+}
+
+#[test]
+fn a_cancel_winning_the_process_race_reveals_the_kept_launcher() {
     let f = seeded();
     login_on_start(&f);
-    f.procs.set_game_window(false);
-    let procs = f.procs.clone();
-    f.procs.on_launch(move || procs.set_game(true));
+    let (ready, waiting) = std::sync::mpsc::sync_channel(1);
+    let (resume, resumed) = std::sync::mpsc::sync_channel(1);
+    let resumed = std::sync::Mutex::new(resumed);
+    f.procs.on_launch(move || {
+        ready.send(()).unwrap();
+        resumed.lock().unwrap().recv().unwrap();
+    });
     let core = f.core();
     core.start_game(ID, false).unwrap();
-    wait_for(&core, "handover", |s| s.operation.as_ref().is_some_and(|o| o.phase == Phase::ClosingLauncher));
-    guarded_cancel(&core);
-    assert!(core.state().game_running && f.procs.launcher_running(&f.install));
+    waiting.recv_timeout(Duration::from_secs(2)).unwrap();
+    std::thread::sleep(core.timing.cancel_guard);
+    core.cancel_operation();
+    f.procs.set_game(true);
+    resume.send(()).unwrap();
+    wait_idle(&core);
+    assert_eq!(account(&core.state(), ID).last_outcome, None);
+    assert!(f.procs.launcher_running(&f.install));
+    assert!(core.state().game_running);
+    assert!(!f.procs.is_hidden());
+    assert!(f.procs.calls().iter().any(|c| c == "show_windows_no_activate"));
     assert!(!f.procs.calls().iter().any(|c| c == "stop_launcher" || c == "stop_game"));
 }
 
