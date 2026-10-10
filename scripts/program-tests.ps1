@@ -99,6 +99,8 @@ function Start-App([bool]$Tray = $false, [string]$After = 'stay', [string]$Actio
     $env:NOXDECK_START_TIMEOUT_MS = '3000'
     $env:NOXDECK_GAME_TIMEOUT_MS = '1500'
     $env:NOXDECK_GAME_SETTLE_MS = '400'
+    $env:NOXDECK_GAME_HANDOVER_MS = '1500'
+    $env:NOXDECK_HANDOVER_PAUSE_MS = '400'
     $env:TEMP = $script:runRoot
     $env:TMP = $script:runRoot
     $arguments = @{FilePath=$exe; WorkingDirectory=$repo; WindowStyle='Hidden'; PassThru=$true}

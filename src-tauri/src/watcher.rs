@@ -49,7 +49,9 @@ impl Core {
                             }
                             _ => None,
                         };
-                        inner.game.launched(id.as_deref(), now);
+                        let previous = inner.operation.as_ref().filter(|op| op.kind == OpKind::Game)
+                            .map(|op| op.previous_game_pids.clone()).unwrap_or_default();
+                        inner.game.launched(id.as_deref(), now, &previous);
                     }
                 }
                 dirty |= self.apply(&mut inner, t.event, t.historic);

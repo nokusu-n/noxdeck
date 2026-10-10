@@ -100,7 +100,7 @@ export function AccountRecord({ account: a, loggingIn, phase, busy, launcherFoun
           <button data-testid={`start-${a.id}`} className={`btn btn--act${wide}`} disabled={startBlocked} title={reason ?? t("startTip")} onClick={onStart}>{t("start")}</button>
         )}
         {showGameStart && (a.isInGame ? (
-          <button data-testid={`ingame-${a.id}`} className="btn btn--act is-on" disabled aria-current="true" title={t("inGameTip")}><OverwatchMark />{t("startGame")}</button>
+          <button data-testid={`ingame-${a.id}`} className="btn btn--act is-on" disabled={startBlocked} aria-current="true" title={reason ?? t("inGameTip")} onClick={onGame}><OverwatchMark />{t("startGame")}</button>
         ) : (
           <button data-testid={`game-${a.id}`} className="btn btn--act" disabled={startBlocked} title={reason ?? t("startGameTip")} onClick={onGame}><OverwatchMark />{t("startGame")}</button>
         ))}

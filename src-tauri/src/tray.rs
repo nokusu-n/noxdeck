@@ -42,7 +42,7 @@ pub fn menu(state: &State) -> Vec<TrayItem> {
             enabled: state.operation.is_none()
                 && state.launcher != LauncherKind::NotFound
                 && a.email.is_some()
-                && !a.is_in_game
+                && (state.settings.show_game_start || !a.is_in_game)
                 && (state.settings.show_game_start || !a.is_current),
         });
     }

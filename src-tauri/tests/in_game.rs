@@ -1,6 +1,6 @@
 mod common;
 use common::*;
-use noxdeck_lib::{Core, LauncherKind, Refusal};
+use noxdeck_lib::{Core, LauncherKind, Phase, Refusal, tray, launcher::Processes, shell::ShellRequest};
 use std::fs;
 use std::path::Path;
 
@@ -249,15 +249,135 @@ fn deleting_a_candidate_prevents_a_mark_if_the_record_is_added_again() {
 }
 
 #[test]
-fn already_in_game_refuses_with_or_without_permission_to_close() {
+fn playing_account_without_consent_gets_the_question_and_touches_nothing() {
     let f = seeded();
     let (core, _) = confirmed(&f);
     f.procs.clear_calls();
-    for close in [false, true] {
-        assert_eq!(core.start_game(A, close), Err(Refusal::AlreadyInGame));
-    }
+    let config = f.config_bytes();
+    let registry = fs::read(f.paths.data.join("accounts.json")).unwrap();
+    assert_eq!(core.start_game(A, false), Err(Refusal::GameRunning));
     assert!(f.procs.calls().is_empty());
     assert!(core.state().operation.is_none());
+    assert_eq!(f.config_bytes(), config);
+    assert_eq!(fs::read(f.paths.data.join("accounts.json")).unwrap(), registry);
+    assert_eq!(saved(&f.paths.data)["game"]["pid"], 7001);
+}
+
+#[test]
+fn restart_stops_the_old_process_before_command_and_marks_the_new_one() {
+    for reuse in [true, false] {
+        let f = seeded();
+        let (core, run) = confirmed(&f);
+        run.line("InstallState (prometheus): installed=1 playable=1");
+        if !reuse { f.procs.set_running(false); }
+        let config = f.config_bytes();
+        let latest = std::sync::Arc::new(std::sync::Mutex::new(run));
+        let kept = latest.clone();
+        let sim = f.sim.clone();
+        f.procs.on_start(move || {
+            let run = sim.new_run();
+            run.login(A);
+            run.line("InstallState (prometheus): installed=1 playable=1");
+            *kept.lock().unwrap() = run;
+        });
+        let procs = f.procs.clone();
+        let weak = std::sync::Arc::downgrade(&core);
+        f.procs.on_launch(move || {
+            assert!(!procs.game_running("FakeGame.exe"), "old game must be gone before the command");
+            assert!(weak.upgrade().unwrap().state().accounts.iter().all(|a| !a.is_in_game));
+            launch(&latest.lock().unwrap());
+            procs.set_game_pids(vec![8002]);
+        });
+        f.procs.clear_calls();
+        core.start_game(A, true).unwrap();
+        wait_idle(&core);
+        marked(&core, A);
+        assert_eq!(saved(&f.paths.data)["game"]["pid"], 8002);
+        assert_eq!(account(&core.state(), A).last_outcome, Some("game_started"));
+        let calls = f.procs.calls();
+        assert_eq!(calls.first().map(String::as_str), Some("stop_game"));
+        assert_eq!(calls.iter().filter(|c| c.as_str() == "send_launch_command").count(), 1);
+        assert_eq!(calls.iter().any(|c| c == "start_launcher"), !reuse);
+        if reuse { assert_eq!(f.config_bytes(), config); assert!(!f.backup_file().exists()); }
+    }
+}
+
+#[test]
+fn failed_stop_or_lingering_old_game_leaves_launcher_and_config_untouched() {
+    for lingering in [false, true] {
+        let f = seeded();
+        let (core, _) = confirmed(&f);
+        if lingering { f.procs.keep_game_on_stop(true); } else { f.procs.deny_game_stop(true); }
+        let config = f.config_bytes();
+        f.procs.clear_calls();
+        assert_eq!(core.start_game(A, true), Err(Refusal::GameNotClosable));
+        assert_eq!(f.procs.calls(), ["stop_game"]);
+        assert_eq!(f.config_bytes(), config);
+        assert!(!f.backup_file().exists());
+        assert_eq!(core.state().launcher, LauncherKind::LoggedIn);
+        assert!(core.state().operation.is_none());
+        assert_eq!(saved(&f.paths.data)["game"]["pid"], 7001);
+    }
+}
+
+#[test]
+fn old_process_and_old_window_cannot_finish_or_attribute_the_new_start() {
+    let f = seeded();
+    let (core, run) = confirmed(&f);
+    run.line("InstallState (prometheus): installed=1 playable=1");
+    let procs = f.procs.clone();
+    f.procs.set_game_windows(vec![7001]);
+    f.procs.on_launch(move || { launch(&run); procs.set_game_pids(vec![7001]); });
+    f.procs.clear_calls();
+    core.start_game(A, true).unwrap();
+    std::thread::sleep(std::time::Duration::from_millis(60));
+    core.tick();
+    assert!(core.state().accounts.iter().all(|a| !a.is_in_game));
+    assert_eq!(core.state().operation.unwrap().phase, Phase::LaunchingGame);
+    f.procs.set_game_pids(vec![7001, 8002]);
+    wait_for(&core, "new process enters handover", |s| s.operation.as_ref().is_some_and(|o| o.phase == Phase::ClosingLauncher));
+    marked(&core, A);
+    assert_eq!(saved(&f.paths.data)["game"]["pid"], 8002);
+    std::thread::sleep(std::time::Duration::from_millis(130));
+    assert!(!f.procs.calls().iter().any(|c| c == "stop_launcher"), "old window must not satisfy the new handover");
+    f.procs.set_game_windows(vec![8002]);
+    let window_at = std::time::Instant::now();
+    wait_idle(&core);
+    assert!(window_at.elapsed() >= core.timing.handover_pause);
+    assert_eq!(core.state().launcher, LauncherKind::Closed);
+    assert_eq!(saved(&f.paths.data)["game"]["pid"], 8002);
+}
+
+#[test]
+fn old_pid_only_cannot_count_as_the_new_game_at_the_start_bound() {
+    let f = seeded();
+    let (core, run) = confirmed(&f);
+    run.line("InstallState (prometheus): installed=1 playable=1");
+    let procs = f.procs.clone();
+    f.procs.on_launch(move || { launch(&run); procs.set_game_pids(vec![7001]); });
+    f.procs.clear_calls();
+    core.start_game(A, true).unwrap();
+    wait_idle(&core);
+    assert!(core.state().accounts.iter().all(|a| !a.is_in_game));
+    assert_eq!(account(&core.state(), A).last_outcome, Some("game_not_started"));
+    assert!(!f.procs.calls().iter().any(|c| c == "stop_launcher"));
+}
+
+#[test]
+fn playing_account_tray_click_asks_and_cancelling_changes_nothing() {
+    let f = seeded();
+    let (core, _) = confirmed(&f);
+    f.procs.clear_calls();
+    f.shell.clear();
+    assert!(tray::menu(&core.state()).iter().find(|item| item.id == format!("acc-{A}")).unwrap().enabled);
+    tray::click(&core, &format!("acc-{A}"));
+    assert_eq!(serde_json::to_value(core.state()).unwrap()["ask"], serde_json::json!({"kind":"close_game","accountId":A}));
+    assert!(f.shell.requests().contains(&ShellRequest::ShowWindow));
+    assert!(f.procs.calls().is_empty());
+    core.clear_ask();
+    assert!(core.state().ask.is_none());
+    assert!(f.procs.calls().is_empty());
+    assert_eq!(saved(&f.paths.data)["game"]["pid"], 7001);
 }
 
 #[test]

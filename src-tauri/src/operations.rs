@@ -129,6 +129,7 @@ impl Core {
                 kind,
                 account_id,
                 phase: Phase::Stopping,
+                previous_game_pids: if kind == OpKind::Game { inner.game_pids.clone() } else { vec![] },
             });
             install
         };
@@ -284,14 +285,6 @@ impl Core {
                 .registry
                 .find(&target)
                 .ok_or(Refusal::UnknownAccount)?;
-            if inner
-                .game
-                .confirmed
-                .as_ref()
-                .is_some_and(|g| g.account_id == target)
-            {
-                return Err(Refusal::AlreadyInGame);
-            }
             email = a.email.clone().ok_or(Refusal::NoEmail)?;
             game_running = inner.game_running;
             if game_running && !close_game {
@@ -313,6 +306,11 @@ impl Core {
             }
             self.tick();
             let inner = lock(&self.inner);
+            if inner.game_running {
+                drop(inner);
+                self.end_operation();
+                return Err(Refusal::GameNotClosable);
+            }
             // Stopping the game can take time; the launcher may have changed meanwhile.
             reuse = inner.launcher_running
                 && matches!(&inner.session, Session::LoggedIn(id) if id == &target);
@@ -423,9 +421,10 @@ impl Core {
         }
         let deadline = Instant::now() + self.timing.game_timeout;
         let mut wait = self.journal.wait(WaitFor::GameProcess, Some(self.timing.game_timeout));
+        let previous = lock(&self.inner).operation.as_ref().map(|op| op.previous_game_pids.clone()).unwrap_or_default();
         let game_pid = loop {
             self.tick();
-            if let Some(pid) = lock(&self.inner).game_pids.first().copied() {
+            if let Some(pid) = lock(&self.inner).game_pids.iter().copied().find(|pid| !previous.contains(pid)) {
                 wait.end(WaitEnd::Event);
                 break pid;
             }

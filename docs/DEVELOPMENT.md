@@ -23,7 +23,7 @@ npm install
 | Core tests (flows against a test launcher directory) | `npm run test:core` |
 | Interface tests (the running app against the `test-launcher` executable) | `npm run e2e` |
 | Program checks (window lifecycle, instance, memory, time to list) | `npm run test:program` |
-| Build the installer, without installing it | `npm run build:installer` → `target/release/bundle/nsis/Noxdeck_0.5.0_x64-setup.exe` |
+| Build the installer, without installing it | `npm run build:installer` → `target/release/bundle/nsis/Noxdeck_0.6.0_x64-setup.exe` |
 | Type-check the interface | `npm run typecheck` |
 
 `npm run e2e` builds its own copy of the app and of `test-launcher` into

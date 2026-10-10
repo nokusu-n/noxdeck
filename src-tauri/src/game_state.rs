@@ -13,7 +13,7 @@ pub(crate) struct InGame {
 #[derive(Default)]
 pub(crate) struct GameTracking {
     pub confirmed: Option<InGame>,
-    candidate: Option<(String, Instant)>,
+    candidate: Option<(String, Instant, Vec<u32>)>,
     pub restored: bool,
 }
 
@@ -64,8 +64,8 @@ impl GameTracking {
         )
     }
 
-    pub fn launched(&mut self, id: Option<&str>, now: Instant) {
-        self.candidate = id.map(|id| (id.to_owned(), now));
+    pub fn launched(&mut self, id: Option<&str>, now: Instant, previous_pids: &[u32]) {
+        self.candidate = id.map(|id| (id.to_owned(), now, previous_pids.to_vec()));
     }
 
     pub fn tick(&mut self, now: Instant, pids: &[u32]) {
@@ -79,12 +79,13 @@ impl GameTracking {
         if self
             .candidate
             .as_ref()
-            .is_some_and(|(_, at)| now.duration_since(*at) > Duration::from_secs(120))
+            .is_some_and(|(_, at, _)| now.duration_since(*at) > Duration::from_secs(120))
         {
             self.candidate = None;
         }
-        if let Some(&pid) = pids.first() {
-            if let Some((account_id, _)) = self.candidate.take() {
+        let new_pid = self.candidate.as_ref().and_then(|(_, _, previous)| pids.iter().find(|pid| !previous.contains(pid)).copied());
+        if let Some(pid) = new_pid {
+            if let Some((account_id, _, _)) = self.candidate.take() {
                 self.confirmed = Some(InGame { account_id, pid });
             }
         }
@@ -101,7 +102,7 @@ impl GameTracking {
         if self
             .candidate
             .as_ref()
-            .is_some_and(|(id, _)| registry.find(id).is_none())
+            .is_some_and(|(id, _, _)| registry.find(id).is_none())
         {
             self.candidate = None;
         }
@@ -116,7 +117,7 @@ mod tests {
     fn candidate_covers_the_slow_game_bound_and_expires_after_it() {
         let now = Instant::now();
         let mut in_time = GameTracking::default();
-        in_time.launched(Some("aaaa0001"), now);
+        in_time.launched(Some("aaaa0001"), now, &[]);
         in_time.tick(now + Duration::from_secs(120), &[77]);
         assert_eq!(
             in_time.confirmed,
@@ -126,7 +127,7 @@ mod tests {
             })
         );
         let mut late = GameTracking::default();
-        late.launched(Some("aaaa0001"), now);
+        late.launched(Some("aaaa0001"), now, &[]);
         late.tick(now + Duration::from_secs(120) + Duration::from_nanos(1), &[]);
         late.tick(now + Duration::from_secs(121), &[88]);
         assert_eq!(late.confirmed, None);
@@ -136,10 +137,10 @@ mod tests {
     fn a_game_seen_after_the_deadline_cannot_confirm_an_expired_candidate() {
         let now = Instant::now();
         let mut game = GameTracking::default();
-        game.launched(Some("aaaa0001"), now);
+        game.launched(Some("aaaa0001"), now, &[]);
         game.tick(now + Duration::from_secs(121), &[77]);
         assert_eq!(game.confirmed, None);
-        game.launched(Some("aaaa0002"), now + Duration::from_secs(122));
+        game.launched(Some("aaaa0002"), now + Duration::from_secs(122), &[]);
         game.tick(now + Duration::from_secs(122), &[88]);
         assert_eq!(game.confirmed.as_ref().unwrap().account_id, "aaaa0002");
     }

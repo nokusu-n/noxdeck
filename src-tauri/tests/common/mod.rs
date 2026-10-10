@@ -46,10 +46,13 @@ struct ProcState {
     running: bool,
     game: bool,
     game_pids: Vec<u32>,
+    next_game_pid: u32,
     game_window: Option<bool>,
+    game_window_pids: Option<Vec<u32>>,
     deny_stop: bool,
     stop_error: Option<ProcessError>,
     deny_game_stop: bool,
+    keep_game_on_stop: bool,
     calls: Vec<String>,
     queries: Vec<&'static str>,
     trace: Vec<&'static str>,
@@ -70,22 +73,32 @@ impl RecordingProcesses {
         self.s.lock().unwrap().running = v;
     }
     pub fn set_game(&self, v: bool) {
-        self.set_game_pids(if v { vec![1001] } else { vec![] });
+        let mut s = self.s.lock().unwrap();
+        if v && !s.game {
+            s.next_game_pid = s.next_game_pid.max(1000) + 1;
+            s.game_pids = vec![s.next_game_pid];
+        } else if !v { s.game_pids.clear(); }
+        s.game = v;
     }
     pub fn set_game_pids(&self, pids: Vec<u32>) {
         let mut s = self.s.lock().unwrap();
         s.game = !pids.is_empty();
+        s.next_game_pid = s.next_game_pid.max(pids.iter().copied().max().unwrap_or(0));
         s.game_pids = pids;
     }
     pub fn set_game_window(&self, visible: bool) {
-        self.s.lock().unwrap().game_window = Some(visible);
+        let mut s = self.s.lock().unwrap();
+        s.game_window = Some(visible);
+        s.game_window_pids = None;
     }
+    pub fn set_game_windows(&self, pids: Vec<u32>) { self.s.lock().unwrap().game_window_pids = Some(pids); }
     pub fn deny_stop(&self, v: bool) {
         self.s.lock().unwrap().deny_stop = v;
     }
     pub fn deny_game_stop(&self, v: bool) {
         self.s.lock().unwrap().deny_game_stop = v;
     }
+    pub fn keep_game_on_stop(&self, v: bool) { self.s.lock().unwrap().keep_game_on_stop = v; }
     pub fn fail_stop(&self, error: ProcessError) { self.s.lock().unwrap().stop_error = Some(error); }
     /// What the "launcher" does when it is started.
     pub fn on_start(&self, f: impl Fn() + Send + Sync + 'static) {
@@ -128,7 +141,8 @@ impl Processes for RecordingProcesses {
             launcher_running: install.is_some() && s.running,
             launcher_count: usize::from(install.is_some() && s.running),
             game_running: s.game,
-            game_window_pids: if s.game_window.unwrap_or(true) { s.game_pids.clone() } else { vec![] },
+            game_window_pids: s.game_window_pids.as_ref().map(|pids| pids.iter().copied().filter(|pid| s.game_pids.contains(pid)).collect())
+                .unwrap_or_else(|| if s.game_window.unwrap_or(true) { s.game_pids.clone() } else { vec![] }),
             game_pids: s.game_pids.clone(),
         }
     }
@@ -208,6 +222,7 @@ impl Processes for RecordingProcesses {
         if s.deny_game_stop {
             return Err(ProcessError::AccessDenied);
         }
+        if s.keep_game_on_stop { return Ok(()); }
         s.game = false;
         s.game_pids.clear();
         Ok(())

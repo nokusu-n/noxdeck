@@ -19,7 +19,7 @@ fn scripted_start_exports_only_typed_steps_and_no_account_or_launcher_text() {
         run.line("recognisable placeholder launcher text");
         *slot.lock().unwrap() = Some(run);
     });
-    let core = f.core();
+    let core = Core::new(f.paths.clone(), fast(), f.procs.clone(), Box::new(|_| {}), env!("CARGO_PKG_VERSION"), f.shell.clone());
     core.start_launcher(id).unwrap();
     wait_idle(&core);
     let procs = f.procs.clone();
@@ -36,11 +36,11 @@ fn scripted_start_exports_only_typed_steps_and_no_account_or_launcher_text() {
     for expected in ["Operation began: Start, account 1", "Operation ended: Start, account 1, Success", "Launcher event: LoggedIn, account 1", "WaitBegan", "elapsed_ms", "bound_ms", "Snapshot", "StartLauncher", "SelectAccount", "Windows:", "System locale:"] { assert!(text.contains(expected), "missing {expected}"); }
     assert!(text.contains("Operation ended: Game, account 1, Success"));
     assert!(text.contains("GameProcess"));
+    if let Some(path) = std::env::var_os("NOXDECK_SAMPLE_DIAGNOSTICS") { core.write_diagnostics(std::path::Path::new(&path)).unwrap(); }
     let before: Vec<_> = std::fs::read_dir(&f.paths.data).unwrap().map(|e| e.unwrap().file_name()).collect();
     core.journal.record(Step::Command(Command::LaunchGame));
     let after: Vec<_> = std::fs::read_dir(&f.paths.data).unwrap().map(|e| e.unwrap().file_name()).collect();
     assert_eq!(before, after, "journalling writes nothing");
-    if let Some(path) = std::env::var_os("NOXDECK_SAMPLE_DIAGNOSTICS") { core.write_diagnostics(std::path::Path::new(&path)).unwrap(); }
 }
 
 #[test]

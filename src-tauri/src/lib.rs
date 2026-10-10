@@ -124,7 +124,6 @@ pub enum Refusal {
     AlreadyListed,
     NoEmail,
     AlreadyOpen,
-    AlreadyInGame,
     UnknownAccount,
     GameRunning,
     GameNotClosable,
@@ -239,6 +238,7 @@ pub(crate) struct Operation {
     pub kind: OpKind,
     pub account_id: Option<String>,
     pub phase: Phase,
+    pub previous_game_pids: Vec<u32>,
 }
 
 pub(crate) struct Inner {

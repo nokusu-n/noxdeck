@@ -14,7 +14,6 @@ export type Refusal =
   | "already_listed"
   | "no_email"
   | "already_open"
-  | "already_in_game"
   | "game_running"
   | "game_not_closable"
   | "unknown_account";

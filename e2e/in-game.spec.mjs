@@ -16,7 +16,8 @@ const state = () => app.browser.execute(async () => window.__TAURI_INTERNALS__.i
 async function assertMarked(a = A, label = "Overwatch") {
   await app.h.waitFor(`ingame-${a.id}`, { timeout: 2000 });
   assert.equal(await app.h.text(`ingame-${a.id}`), label);
-  assert.equal(await app.h.el(`ingame-${a.id}`).isEnabled(), false);
+  await app.h.tick(async () => (await state()).operation === null, "game start is still finishing");
+  assert.equal(await app.h.el(`ingame-${a.id}`).isEnabled(), true);
   assert.equal(await app.h.exists(`game-${a.id}`), false);
   const s = await state();
   assert.equal(s.accounts.filter((item) => item.isInGame).length, 1);
@@ -38,13 +39,37 @@ async function manualPlay() {
   await app.h.tick(async () => (await state()).gameRunning, "manual Play did not start the stand-in game");
 }
 
-test("US4.1 started account has an inactive mark; other accounts keep Start game", async () => {
+test("US4.1 started account has a pressable running button; other accounts keep Start game", async () => {
   await startOnA();
   await assertMarked();
   assert.equal(await app.h.exists(`ingame-${B.id}`), false);
   assert.equal(await app.h.el(`game-${B.id}`).isEnabled(), true);
   assert.equal(await app.h.exists("game-dialog"), false);
   assert.equal(await app.h.exists("operation"), false);
+});
+
+test("US4 restarting the playing account asks and replaces its process on the same account", async () => {
+  await startOnA();
+  await assertMarked();
+  const gameFile = join(app.dirs.install, "game-started.json");
+  const old = JSON.parse(readFileSync(gameFile, "utf8"));
+  await app.h.click(`ingame-${A.id}`);
+  await app.h.waitFor("game-dialog");
+  await app.h.click("game-no");
+  await app.h.waitGone("game-dialog");
+  assert.deepEqual(JSON.parse(readFileSync(gameFile, "utf8")), old);
+  await app.h.click(`ingame-${A.id}`);
+  await app.h.waitFor("game-dialog");
+  await app.h.click("game-yes");
+  await app.h.tick(() => JSON.parse(readFileSync(gameFile, "utf8")).pid !== old.pid, "the game process was not replaced");
+  await app.h.waitGone("operation");
+  await assertMarked();
+  const restarted = JSON.parse(readFileSync(gameFile, "utf8"));
+  assert.equal(restarted.accountId, A.id);
+  assert.notEqual(restarted.pid, old.pid);
+  assert.deepEqual(JSON.parse(readFileSync(join(app.dirs.data, "state.json"), "utf8")), {
+    schema: 1, game: { account_id: A.id, pid: restarted.pid },
+  });
 });
 
 test("US4.2 the launcher's own Play marks its logged-in account", async () => {

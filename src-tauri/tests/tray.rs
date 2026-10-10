@@ -76,7 +76,7 @@ fn every_fr007_rule_disables_only_affected_items() {
         assert_eq!(tray::menu(&s)[1].enabled, show_game);
         s.accounts[0].is_current = false;
         s.accounts[0].is_in_game = true;
-        assert!(!tray::menu(&s)[1].enabled);
+        assert_eq!(tray::menu(&s)[1].enabled, show_game);
         s.accounts[0].is_in_game = false;
         s.accounts[0].email = None;
         assert!(!tray::menu(&s)[1].enabled);
