@@ -64,9 +64,9 @@ body { margin: 0; overflow: hidden; background: var(--ground); color: var(--text
   .btn:hover { background: #3a3f4d; }
   .btn:active { background: #2a2e39; }
   .btn:disabled { opacity: .38; cursor: not-allowed; background: #2d313c; }
-  /* A running Battle.net or game: the same button, lit. Green outline and green text, no hover,
-     no pressed state, and the label never changes. */
-  .btn--act.is-on:disabled { opacity: 1; cursor: default; background: none; color: var(--ok-text); box-shadow: inset 0 0 0 1px rgba(108, 219, 0, .45); }
+  .btn--act.is-on { background: none; color: var(--ok-text); box-shadow: inset 0 0 0 1px rgba(108, 219, 0, .45); }
+  .btn--act.is-on:disabled { opacity: 1; cursor: default; background: none; }
+  .btn--act.is-on:enabled:hover { background: rgba(108, 219, 0, .12); }
   .btn--primary { background: var(--accent-btn); color: #fff; }
   .btn--primary:hover { background: var(--accent-hi); }
   .btn--danger { background: rgba(221, 0, 0, .2); color: #ffb0a8; box-shadow: inset 0 0 0 1px rgba(255, 90, 76, .45); }

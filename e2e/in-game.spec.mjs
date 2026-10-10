@@ -18,6 +18,7 @@ async function assertMarked(a = A, label = "Overwatch") {
   assert.equal(await app.h.text(`ingame-${a.id}`), label);
   await app.h.tick(async () => (await state()).operation === null, "game start is still finishing");
   assert.equal(await app.h.el(`ingame-${a.id}`).isEnabled(), true);
+  assert.equal(await app.h.el(`ingame-${a.id}`).getCSSProperty("color").then(p => p.value), "rgba(142,228,51,1)");
   assert.equal(await app.h.exists(`game-${a.id}`), false);
   const s = await state();
   assert.equal(s.accounts.filter((item) => item.isInGame).length, 1);
