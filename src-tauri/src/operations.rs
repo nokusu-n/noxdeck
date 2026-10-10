@@ -442,17 +442,38 @@ impl Core {
             return Some("game_needs_update");
         }
         self.set_phase(Phase::LaunchingGame);
+        let launch_seq = self.seq();
         self.journal.record(Step::Command(Command::LaunchGame));
         let result = self.processes.send_launch_command(install);
         diagnostics::command_result(&self.journal, Command::LaunchGame, &result);
         if result.is_err() {
             return Some("game_not_started");
         }
+        let mut resent = false;
+        // A manual debug probe sends the second command while the first is being handled.
+        #[cfg(debug_assertions)]
+        if std::env::var("NOXDECK_PROBE_RESEND").as_deref() == Ok("1") {
+            std::thread::sleep(Duration::from_millis(250));
+            self.tick();
+            let wanted = {
+                let inner = lock(&self.inner);
+                inner.launcher_running && matches!(&inner.session, Session::LoggedIn(current) if current == id)
+            };
+            if wanted && !self.cancel.load(Ordering::SeqCst) {
+                resent = true;
+                self.journal.record(Step::Command(Command::LaunchGame));
+                let result = self.processes.send_launch_command(install);
+                diagnostics::command_result(&self.journal, Command::LaunchGame, &result);
+            }
+        }
         self.processes.refresh_launcher_pids(install);
         if !reuse {
             self.processes.hide_windows(install);
         }
         let deadline = Instant::now() + self.timing.game_timeout;
+        let retry_at = Instant::now() + self.timing.game_retry;
+        let mut launch_seen = false;
+        let mut gone_since: Option<Instant> = None;
         let mut wait = self.journal.wait(WaitFor::GameProcess, Some(self.timing.game_timeout));
         let previous = lock(&self.inner).operation.as_ref().map(|op| op.previous_game_pids.clone()).unwrap_or_default();
         let game_pid = loop {
@@ -464,6 +485,24 @@ impl Core {
             if let Some(pid) = lock(&self.inner).game_pids.iter().copied().find(|pid| !previous.contains(pid)) {
                 wait.end(WaitEnd::Event);
                 break pid;
+            }
+            launch_seen |= self.events_since(launch_seq).contains(&LauncherEvent::GameLaunched);
+            let (running, wanted) = {
+                let inner = lock(&self.inner);
+                (inner.launcher_running, matches!(&inner.session, Session::LoggedIn(current) if current == id))
+            };
+            if running { gone_since = None; }
+            else if gone_since.get_or_insert_with(Instant::now).elapsed() >= self.timing.gone_grace {
+                wait.end(WaitEnd::Gone);
+                return Some("game_not_started");
+            }
+            if !resent && !launch_seen && running && wanted && Instant::now() >= retry_at {
+                resent = true;
+                self.journal.record(Step::Command(Command::LaunchGame));
+                let result = self.processes.send_launch_command(install);
+                diagnostics::command_result(&self.journal, Command::LaunchGame, &result);
+                self.processes.refresh_launcher_pids(install);
+                if result.is_err() { wait.end(WaitEnd::Failed); return Some("game_not_started"); }
             }
             if Instant::now() >= deadline {
                 wait.end(WaitEnd::Bound);

@@ -484,7 +484,7 @@ fn no_game_after_the_command_is_bounded_and_reveals_game_not_started() {
             .iter()
             .filter(|c| c.as_str() == "send_launch_command")
             .count(),
-        1
+        2
     );
 }
 

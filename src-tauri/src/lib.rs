@@ -48,6 +48,7 @@ pub struct Timing {
     pub pid_refresh: Duration,
     pub ratings_interval: Duration,
     pub cancel_guard: Duration,
+    pub game_retry: Duration,
 }
 
 impl Default for Timing {
@@ -68,6 +69,7 @@ impl Default for Timing {
             pid_refresh: Duration::from_millis(250),
             ratings_interval: Duration::from_secs(30 * 60),
             cancel_guard: Duration::from_secs(1),
+            game_retry: Duration::from_secs(10),
         }
     }
 }
@@ -80,7 +82,7 @@ impl Timing {
             ("game_timeout", self.game_timeout), ("game_settle", self.game_settle),
             ("game_handover", self.game_handover), ("handover_pause", self.handover_pause),
             ("hide_interval", self.hide_interval), ("pid_refresh", self.pid_refresh),
-            ("ratings_interval", self.ratings_interval), ("cancel_guard", self.cancel_guard)]
+            ("ratings_interval", self.ratings_interval), ("cancel_guard", self.cancel_guard), ("game_retry", self.game_retry)]
     }
     /// The defaults, with `NOXDECK_POLL_MS`, `NOXDECK_STAND_MS`, `NOXDECK_START_TIMEOUT_MS`
     /// `NOXDECK_GONE_GRACE_MS`, `NOXDECK_GAME_TIMEOUT_MS`, `NOXDECK_GAME_SETTLE_MS`
@@ -101,6 +103,7 @@ impl Timing {
             start_timeout: ms("NOXDECK_START_TIMEOUT_MS", d.start_timeout),
             gone_grace: ms("NOXDECK_GONE_GRACE_MS", d.gone_grace),
             game_timeout: ms("NOXDECK_GAME_TIMEOUT_MS", d.game_timeout),
+            game_retry: ms("NOXDECK_GAME_RETRY_MS", d.game_retry),
             game_settle: ms("NOXDECK_GAME_SETTLE_MS", d.game_settle),
             game_handover: ms("NOXDECK_GAME_HANDOVER_MS", d.game_handover),
             handover_pause: ms("NOXDECK_HANDOVER_PAUSE_MS", d.handover_pause),

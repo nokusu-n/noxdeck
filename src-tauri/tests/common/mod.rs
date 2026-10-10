@@ -39,6 +39,7 @@ pub fn fast() -> Timing {
         pid_refresh: Duration::from_millis(250),
         ratings_interval: Duration::from_secs(1800),
         cancel_guard: Duration::from_millis(40),
+        game_retry: Duration::from_millis(150),
     }
 }
 
