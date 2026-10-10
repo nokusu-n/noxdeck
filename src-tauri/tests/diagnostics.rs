@@ -73,6 +73,54 @@ fn cap_drops_oldest_and_numbers_stay_stable_after_account_deletion() {
     assert_eq!(journal.account("aaaa0002"), 1);
 }
 
+#[test]
+fn repeated_hides_of_each_window_have_one_entry_and_a_count() {
+    let journal = Journal::default();
+    for _ in 0..250 {
+        journal.hide_window(1234, 10);
+        journal.record(Step::Command(Command::LaunchGame));
+        journal.hide_window(9876, 10);
+    }
+    let text = journal.text();
+    assert_eq!(text.lines().filter(|l| l.contains("hidden:")).count(), 2);
+    assert!(text.contains("Launcher window 1 hidden: count=250"));
+    assert!(text.contains("Launcher window 2 hidden: count=250"));
+    assert!(!text.contains("1234") && !text.contains("9876"));
+}
+
+#[test]
+fn settings_journal_keeps_every_new_value_without_duplicate_or_account_text() {
+    use noxdeck_lib::settings::{AfterStart, Language, Sort};
+    let f = Fake::new();
+    let core = f.core();
+    core.set_hide_emails(true);
+    core.set_hide_emails(true);
+    core.set_close_launcher(false);
+    core.set_auto_ratings(false);
+    core.set_show_game_start(false);
+    core.set_show_ratings(false);
+    core.set_after_start(AfterStart::Stay);
+    core.set_language(Some(Language::It));
+    core.set_sort(Sort::Battletag);
+    core.dismiss("rememberLogin");
+    core.dismiss("logoutWarning");
+    let text = core.journal.text();
+    for change in ["hide_emails=true", "close_launcher=false", "auto_ratings=false", "show_game_start=false", "show_ratings=false", "after_start=\"stay\"", "language=\"it\"", "sort=\"battletag\"", "remember_login=true", "logout_warning=true"] {
+        assert_eq!(text.matches(&format!("Setting changed: {change}")).count(), 1, "{change}");
+    }
+    assert!(!text.contains('@') && !text.contains('#'));
+}
+
+#[test]
+fn autostart_is_journalled_from_its_actual_state() {
+    let journal = Journal::default();
+    let settings = noxdeck_lib::settings::Settings::default();
+    journal.settings(&settings, false);
+    journal.settings(&settings, true);
+    journal.settings(&settings, true);
+    assert_eq!(journal.text().matches("Setting changed: autostart=true").count(), 1);
+}
+
 struct SaveShell { path: Option<std::path::PathBuf> }
 impl Shell for SaveShell {
     fn request(&self, _: ShellRequest) {}

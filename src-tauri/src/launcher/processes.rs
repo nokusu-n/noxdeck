@@ -439,7 +439,7 @@ impl Processes for RealProcesses {
                 unsafe {
                     ShowWindowAsync(window, 0);
                 }
-                self.record(Step::Window(Window::LauncherHidden));
+                if let Some(journal) = &*self.journal.lock().unwrap_or_else(|e| e.into_inner()) { journal.hide_window(handle, pid); }
             }
         }
     }

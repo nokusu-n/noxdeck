@@ -27,6 +27,7 @@ impl Core {
             });
             if let Ok(autostart) = autostart {
                 inner.autostart = autostart;
+                self.journal.settings(&inner.settings, autostart);
             }
             inner.install = install;
             inner.launcher_running = snapshot.launcher_running;

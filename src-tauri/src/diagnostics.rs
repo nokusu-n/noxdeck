@@ -50,6 +50,8 @@ pub enum Step {
     StopSnapshot { game: bool, remaining: usize },
     LauncherStopProcesses { selected: bool, executables: BTreeMap<crate::launcher::ExecutableName, usize> },
     Window(Window),
+    WindowHidden { window: u32, count: u32 },
+    SettingChanged { name: &'static str, value: serde_json::Value },
 }
 struct Entry { wall: SystemTime, at: Instant, step: Step }
 #[derive(Default)]
@@ -57,10 +59,47 @@ struct Entries {
     entries: VecDeque<Entry>,
     accounts: Vec<String>,
     snapshot: Option<(bool, usize, bool, bool)>,
+    hidden_windows: Vec<(usize, u32)>,
+    settings: Option<crate::settings::Settings>,
+    autostart: Option<bool>,
 }
 #[derive(Default)]
 pub struct Journal(Mutex<Entries>);
 impl Journal {
+    pub fn hide_window(&self, handle: usize, pid: u32) {
+        let mut entries = lock(&self.0);
+        let number = match entries.hidden_windows.iter().position(|key| *key == (handle, pid)) {
+            Some(i) => i as u32 + 1,
+            None => { entries.hidden_windows.push((handle, pid)); entries.hidden_windows.len() as u32 },
+        };
+        if let Some(entry) = entries.entries.iter_mut().find(|e| matches!(e.step, Step::WindowHidden { window, .. } if window == number)) {
+            if let Step::WindowHidden { count, .. } = &mut entry.step { *count = count.saturating_add(1); }
+        } else {
+            if entries.entries.len() == 2000 { entries.entries.pop_front(); }
+            entries.entries.push_back(Entry { wall: SystemTime::now(), at: Instant::now(), step: Step::WindowHidden { window: number, count: 1 } });
+        }
+    }
+    pub fn settings(&self, settings: &crate::settings::Settings, autostart: bool) {
+        let changes = {
+            let mut entries = lock(&self.0);
+            let mut changes = Vec::new();
+            if let Some(previous) = &entries.settings {
+                let old = serde_json::to_value(previous).unwrap();
+                let new = serde_json::to_value(settings).unwrap();
+                for name in ["sort", "after_start", "show_game_start", "close_launcher", "show_ratings", "auto_ratings", "hide_emails", "language"] {
+                    if old[name] != new[name] { changes.push(Step::SettingChanged { name, value: new[name].clone() }); }
+                }
+                for name in ["remember_login", "logout_warning"] {
+                    if old["dismissed"][name] != new["dismissed"][name] { changes.push(Step::SettingChanged { name, value: new["dismissed"][name].clone() }); }
+                }
+            }
+            if entries.autostart.is_some_and(|old| old != autostart) { changes.push(Step::SettingChanged { name: "autostart", value: autostart.into() }); }
+            entries.settings = Some(settings.clone());
+            entries.autostart = Some(autostart);
+            changes
+        };
+        for step in changes { self.record(step); }
+    }
     pub fn account(&self, id: &str) -> u32 {
         let mut entries = lock(&self.0);
         if let Some(n) = entries.accounts.iter().position(|a| a == id) { return n as u32 + 1; }
@@ -111,6 +150,8 @@ fn step_text(step: &Step) -> String {
         Step::OperationBegan { kind, account } => format!("Operation began: {kind:?}, {}", account_text(*account)),
         Step::OperationEnded { kind, account, outcome } => format!("Operation ended: {kind:?}, {}, {outcome:?}", account_text(*account)),
         Step::LauncherEvent { event, account, historic } => format!("Launcher event: {event:?}, {}, historic={historic}", account_text(*account)),
+        Step::SettingChanged { name, value } => format!("Setting changed: {name}={value}"),
+        Step::WindowHidden { window, count } => format!("Launcher window {window} hidden: count={count}"),
         Step::LauncherStopProcesses { selected, executables } => {
             let names: Vec<_> = executables.iter().map(|(exe, count)| format!("{}={count}", exe.file_name())).collect();
             format!("Launcher directory processes {}: count={}, {}", if *selected { "selected" } else { "excluded" }, executables.values().sum::<usize>(), if names.is_empty() { "none".into() } else { names.join(", ") })

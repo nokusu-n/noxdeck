@@ -390,6 +390,7 @@ impl Core {
         let (settings, reset_s) = Settings::load(&paths.data.join("settings.json"));
         let (game, reset_g) = GameTracking::load(&paths.data.join("state.json"));
         let journal = Arc::new(diagnostics::Journal::default());
+        journal.settings(&settings, shell.autostart().unwrap_or(false));
         for account in &registry.accounts { journal.account(&account.id); }
         processes.set_journal(journal.clone());
         let core = Arc::new(Core {
@@ -456,6 +457,7 @@ impl Core {
     }
 
     pub(crate) fn save_settings(&self, inner: &Inner) {
+        self.journal.settings(&inner.settings, inner.autostart);
         let _ = inner.settings.save(&self.paths.data.join("settings.json"));
     }
 
