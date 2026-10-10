@@ -74,14 +74,19 @@ function RecordCase({ c }: { c: Case }) {
   );
 }
 
-const trayLines = (ru: boolean) => [
-  ru ? "Открыть Noxdeck" : "Open Noxdeck",
-  `Kestrel#2417${ru ? " — в игре" : " — in game"}`,
-  `Tamsin#6205${ru ? " — в Battle.net" : " — in Battle.net"}`,
+const trayText = {
+  ru: ["Открыть Noxdeck", " — в игре", " — в Battle.net", "Выход"],
+  en: ["Open Noxdeck", " — in game", " — in Battle.net", "Exit"],
+  it: ["Apri Noxdeck", " — in gioco", " — in Battle.net", "Esci"],
+};
+const trayLines = (language: Lang) => [
+  trayText[language][0],
+  `Kestrel#2417${trayText[language][1]}`,
+  `Tamsin#6205${trayText[language][2]}`,
   "Marlowe#1093",
   "Quill#8841",
   "Haldor#4059",
-  ru ? "Выход" : "Exit",
+  trayText[language][3],
 ];
 
 export function StatesPage() {
@@ -91,10 +96,10 @@ export function StatesPage() {
   return (
     <div className="states" key={lang}>
       <header className="states-head">
-        <b>Noxdeck 0.5.1 · состояния</b>
+        <b>Noxdeck {base.version} · состояния</b>
         <span>Только для разработки. Данные придуманы, ядро не вызывается.</span>
         <div className="seg" role="group">
-          {(["ru", "en"] as const).map((l) => <button key={l} className={`seg-b${lang === l ? " is-on" : ""}`} aria-pressed={lang === l} onClick={() => setLanguage(l)}>{l.toUpperCase()}</button>)}
+          {(["ru", "en", "it"] as const).map((l) => <button key={l} data-testid={`states-lang-${l}`} className={`seg-b${lang === l ? " is-on" : ""}`} aria-pressed={lang === l} onClick={() => setLanguage(l)}>{l.toUpperCase()}</button>)}
         </div>
       </header>
 
@@ -151,9 +156,9 @@ export function StatesPage() {
 
       <Section title="Меню в трее" note="Рисует Windows, стилей у него нет. Наши только тексты.">
         <div className="pair">
-          {([true, false] as const).map((r) => (
-            <Shot key={String(r)} caption={r ? "Русский" : "English"}>
-              <ul className="tray">{trayLines(r).map((line, i) => <li key={line} className={i === 0 || i === trayLines(r).length - 1 ? "tray-edge" : undefined}>{line}</li>)}</ul>
+          {(["ru", "en", "it"] as const).map((l) => (
+            <Shot key={l} caption={l === "ru" ? "Русский" : l === "it" ? "Italiano" : "English"}>
+              <ul className="tray">{trayLines(l).map((line, i) => <li key={line} className={i === 0 || i === trayLines(l).length - 1 ? "tray-edge" : undefined}>{line}</li>)}</ul>
             </Shot>
           ))}
         </div>

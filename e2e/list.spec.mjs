@@ -1,9 +1,16 @@
 // User Story 4: read and keep the list (acceptance scenarios 1-8), the
-// launcher-not-found edge case, and both languages on every element.
+// launcher-not-found edge case, and every language on every element.
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { afterEach, test } from "node:test";
+import ts from "typescript";
 import { A, B, C, record, sleep, startApp } from "./lib.mjs";
+
+const dictionary = ts.transpileModule(readFileSync(new URL("../src/i18n.ts", import.meta.url), "utf8"), {
+  compilerOptions: { module: ts.ModuleKind.ESNext },
+}).outputText;
+const { setLang, t } = await import(`data:text/javascript;base64,${Buffer.from(dictionary).toString("base64")}`);
 
 let app;
 afterEach(async () => {
@@ -27,6 +34,7 @@ test("1. a record shows the BattleTag, the e-mail and the login state", async ()
   await h.waitFor(`account-${A.id}`);
   assert.equal(await h.text(`tag-${A.id}`), A.tag);
   assert.equal(await h.text(`email-${A.id}`), A.email);
+  assert.equal(await h.el(`email-${A.id}`).getAttribute("title"), A.email);
   await h.waitState(A.id, "ready");
   await h.waitState(B.id, "password_wanted");
   await h.waitState(C.id, "code_wanted");
@@ -145,12 +153,26 @@ test("edge: the launcher is not found: the list is readable and the launcher act
   assert.equal(await h.el(`start-${A.id}`).isEnabled(), false);
 });
 
-// ---- both languages ---------------------------------------------------------
+// ---- every language ---------------------------------------------------------
 
 const cyrillic = /[А-Яа-я]/;
 
 async function checkLanguage(lang) {
-  // The record's two buttons keep their names in both languages ("Launcher", "Overwatch"): their tooltips are what is translated.
+  setLang(lang);
+  const keys = {
+    "add-account": ["addAccount"], "save-current": ["saveCurrent"], "sort-last-login": ["sortLastLogin"],
+    "sort-battletag": ["sortBattletag"], "settings-open": ["settings"], "settings": ["sectionProgram", "sectionOverwatch", "language"],
+    "settings-back": ["back"], "settings-after-title": ["afterStart"], "settings-language-title": ["language"],
+    "developed-by": ["developedBy"], "ratings-source-note": ["ratingsSourceNote"], "message": ["r_no_saved_login"],
+    "remind-dialog": ["remindTitle", "remindBody", "dontShowAgain"], "remind-continue": ["continue"],
+    "logout-dialog": ["logoutTitle", "logoutBody", "dontShowAgain"], "logout-continue": ["continue"],
+    "waiting": ["waitingTitle", "waitingBody"], "cancel": ["cancel"], "delete-dialog": ["deleteTitle", "deleteBody"],
+    "delete-confirm": ["confirm"], "delete-cancel": ["cancel"], "game-dialog": ["gameQuestion"],
+    "game-yes": ["yes"], "game-no": ["no"], "empty-state": ["emptyTitle", "emptyHint"],
+    "launcher-not-found": ["launcherNotFound"], "notice": ["noticeReset"], "notice-ack": ["ok"],
+    "operation": ["operationGame"], "sync": ["syncing"],
+  };
+  // The record's buttons keep their product names: their tooltips are translated.
   const named = /^(start|current|ingame)-|^game-(?!dialog$|yes$|no$)/;
   const check = async (h, ids) => {
     for (const id of ids) {
@@ -159,6 +181,14 @@ async function checkLanguage(lang) {
       // The settings name each language in itself, so "Русский" is there in either window language.
       const words = (named.test(id) ? await h.el(id).getAttribute("title") : text).replace("Русский", "");
       assert.equal(cyrillic.test(words), lang === "ru", `${lang}: ${id} is in the right language: "${words}"`);
+      const expected = keys[id] ?? (id.startsWith("delete-") ? ["delete"] : id.startsWith("copied-") ? ["copied"] : []);
+      const content = await app.browser.execute(id => document.querySelector(`[data-testid="${id}"]`).textContent, id);
+      for (const key of expected) assert.ok(content.includes(t(key)), `${lang}: ${id} contains ${t(key)}`);
+      if (named.test(id)) {
+        const key = id.startsWith("start-") ? "startTip" : id.startsWith("current-") ? "openInLauncherTip" : id.startsWith("ingame-") ? "inGameTip" : "startGameTip";
+        assert.equal(await h.el(id).getAttribute("title"), t(key));
+      }
+      if (id.startsWith("state-")) assert.ok(["stateReady", "phaseStopping"].some(key => text === t(key)), `${lang}: ${id} state is translated`);
     }
   };
   app = await startApp({
@@ -189,13 +219,23 @@ async function checkLanguage(lang) {
   assert.equal(await repository.getText(), "");
   assert.equal(cyrillic.test(await repository.getAttribute("aria-label")), lang === "ru");
   assert.equal(await repository.getAttribute("title"), await repository.getAttribute("aria-label"));
+  assert.equal(await repository.getAttribute("aria-label"), t("openRepository"));
+  for (const [id, key] of [["win-min", "minimize"], ["win-max", "maximize"], ["win-close", "closeToTray"]]) {
+    assert.equal(await h.el(id).getAttribute("title"), t(key));
+    assert.equal(await h.el(id).getAttribute("aria-label"), t(key));
+  }
+  const settingKeys = {
+    "set-autostart": "autostart", "set-after-stay": "afterStay", "set-after-tray": "afterTray", "set-after-close": "afterClose",
+    "set-show-game": "showGame", "set-show-ratings": "showRatings", "set-auto-ratings": "autoRatings", "set-close-launcher": "closeLauncher",
+  };
   for (const id of ["set-autostart", "set-after-stay", "set-after-tray", "set-after-close", "set-show-game", "set-show-ratings", "set-auto-ratings", "set-close-launcher"]) {
     await h.waitFor(id); seen.add(id);
     const label = await app.browser.execute(id => document.querySelector(`[data-testid="${id}"]`).closest("label").textContent, id);
     assert.equal(cyrillic.test(label), lang === "ru", `${lang}: ${id} label is translated`);
+    assert.ok(label.includes(t(settingKeys[id])), `${lang}: ${id} has its translated label`);
   }
   // Each language is named in itself, in either window language, so a player can always find theirs.
-  for (const [id, name] of [["set-lang-ru", "Русский"], ["set-lang-en", "English"]]) {
+  for (const [id, name] of [["set-lang-ru", "Русский"], ["set-lang-en", "English"], ["set-lang-it", "Italiano"]]) {
     await h.waitFor(id); seen.add(id);
     assert.equal(await app.browser.execute(id => document.querySelector(`[data-testid="${id}"]`).closest("label").textContent.trim(), id), name);
   }
@@ -212,6 +252,9 @@ async function checkLanguage(lang) {
     await h.waitFor(`rating-picker-${A.id}-${role}`);
     const names = await app.browser.execute((id, role) => [...document.querySelectorAll(`[data-testid="rating-picker-${id}-${role}"] [role="group"]`)].map(g => g.getAttribute("aria-label")), A.id, role);
     for (const name of names) assert.equal(cyrillic.test(name), lang === "ru");
+    assert.deepEqual(names, ["bronze", "silver", "gold", "platinum", "emerald", "diamond", "master", "grandmaster", "champion"].map(t));
+    assert.equal(await h.el(`rating-picker-${A.id}-${role}`).getAttribute("aria-label"), t(role));
+    assert.equal(await h.text(`rating-option-${A.id}-${role}-placement`), t("placement"));
     await h.click(`rating-option-${A.id}-${role}-placement`);
     await check(h,[`rating-${A.id}-${role}`]);
   }
@@ -220,6 +263,7 @@ async function checkLanguage(lang) {
   await see(["sync"]);
   await h.waitFor(`rating-sync-${A.id}-tank`);
   assert.equal(cyrillic.test(await h.el(`rating-sync-${A.id}-tank`).getAttribute("aria-label")),lang === "ru");
+  assert.equal(await h.el(`rating-sync-${A.id}-tank`).getAttribute("aria-label"), t("synced"));
   await check(h,[`rating-${A.id}-tank`]);
   await h.click(`tag-${A.id}`);
   await see([`copied-${A.id}`]);
@@ -260,11 +304,11 @@ async function checkLanguage(lang) {
   await see(["operation", `state-${B.id}`]);
   await h.waitGone("operation");
   await see([`ingame-${B.id}`]);
-  assert.match(await h.text(`state-${B.id}`), lang === "ru" ? /Игра запущена/ : /Game started/);
+  assert.equal(await h.text(`state-${B.id}`), t("stateGameStarted"));
   app.killGame(); await h.waitFor(`game-${B.id}`);
   for (const [readiness, game_launch, outcome, text] of [
-    ["not_playable", "stays", "game_needs_update", lang === "ru" ? "Обновите игру" : "Update the game"],
-    ["playable", "ignores", "game_not_started", lang === "ru" ? "Игра не запустилась" : "Game didn’t start"],
+    ["not_playable", "stays", "game_needs_update", t("stateGameNeedsUpdate")],
+    ["playable", "ignores", "game_not_started", t("stateGameNotStarted")],
   ]) {
     app.setScenario({ accounts: known, readiness, game_launch });
     await h.click(`game-${A.id}`); await h.waitState(A.id, outcome); await h.waitGone("operation");
@@ -280,11 +324,11 @@ async function checkLanguage(lang) {
   return seen;
 }
 
-for (const lang of ["en", "ru"]) {
-  test(`both languages: every element of the contract is there and in ${lang}`, async () => {
+for (const lang of ["en", "ru", "it"]) {
+  test(`all languages: every element of the contract is there and in ${lang}`, async () => {
     const seen = await checkLanguage(lang);
     const contract = ["empty-state", "add-account", "save-current", "message", "remind-dialog", "remind-dont-show", "remind-continue", "waiting", "cancel", "sort-last-login", "sort-battletag", "delete-dialog", "delete-confirm", "delete-cancel", "logout-dialog", "logout-dont-show", "logout-continue", "launcher-not-found", "version", "settings-open", "settings", "settings-back", "set-autostart", "set-after-stay", "set-after-tray", "set-after-close", "set-show-game", "set-lang-ru", "set-lang-en"];
-    for (const id of contract) assert.ok(seen.has(id), `${id} was seen`);
+    for (const id of [...contract, "set-lang-it"]) assert.ok(seen.has(id), `${id} was seen`);
   });
 }
 

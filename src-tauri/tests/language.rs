@@ -31,8 +31,8 @@ fn probe(locale: &str, saved: Option<&str>, expected: &str) {
 }
 
 #[test]
-fn windows_locale_is_russian_only_for_ru() {
-    for (locale, expected) in [("ru-RU", "ru"), ("ru-UA", "ru"), ("en-US", "en"), ("de-DE", "en"), ("", "en")] {
+fn windows_locale_selects_russian_italian_or_english() {
+    for (locale, expected) in [("ru-RU", "ru"), ("ru-UA", "ru"), ("it-IT", "it"), ("it-CH", "it"), ("IT-it", "it"), ("en-US", "en"), ("de-DE", "en"), ("", "en")] {
         probe(locale, None, expected);
     }
 }
@@ -41,4 +41,7 @@ fn windows_locale_is_russian_only_for_ru() {
 fn a_saved_language_wins_over_the_windows_locale() {
     probe("ru-RU", Some("en"), "en");
     probe("en-US", Some("ru"), "ru");
+    probe("it-IT", Some("en"), "en");
+    probe("it-CH", Some("ru"), "ru");
+    probe("ru-RU", Some("it"), "it");
 }

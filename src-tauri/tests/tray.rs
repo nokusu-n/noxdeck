@@ -40,7 +40,7 @@ fn fewer_accounts_keep_never_logged_in_last_and_an_empty_list_has_only_open_exit
 }
 
 #[test]
-fn labels_use_battletag_or_email_and_both_languages_mark_game_and_launcher() {
+fn labels_use_battletag_or_email_and_all_languages_mark_game_and_launcher() {
     let mut s = state();
     assert_eq!(tray::menu(&s)[1].label, "Alpha#1111");
     s.accounts[0].battletag = None;
@@ -57,6 +57,13 @@ fn labels_use_battletag_or_email_and_both_languages_mark_game_and_launcher() {
     assert_eq!(menu.last().unwrap().label, "Выход");
     s.accounts[0].is_in_game = false;
     assert_eq!(tray::menu(&s)[1].label, "userA@example.com — в Battle.net");
+    s.lang = Language::It;
+    let menu = tray::menu(&s);
+    assert_eq!(menu[0].label, "Apri Noxdeck");
+    assert_eq!(menu[1].label, "userA@example.com — in Battle.net");
+    assert_eq!(menu.last().unwrap().label, "Esci");
+    s.accounts[0].is_in_game = true;
+    assert_eq!(tray::menu(&s)[1].label, "userA@example.com — in gioco");
 }
 
 #[test]

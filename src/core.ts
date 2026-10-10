@@ -53,7 +53,7 @@ export type State = {
   sort: Sort;
   dismissed: { rememberLogin: boolean; logoutWarning: boolean };
   notice: null | "data_file_reset";
-  lang: "ru" | "en";
+  lang: "ru" | "en" | "it";
   settings: {
     closeLauncher: boolean;
     showRatings: boolean;
@@ -61,7 +61,7 @@ export type State = {
     autostart: boolean;
     afterStart: "stay" | "tray" | "close";
     showGameStart: boolean;
-    language: null | "ru" | "en";
+    language: null | "ru" | "en" | "it";
   };
   ask: null | { kind: "close_game"; accountId: string };
 };

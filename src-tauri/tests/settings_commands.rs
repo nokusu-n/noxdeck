@@ -35,6 +35,9 @@ fn commands_publish_and_persist_settings_and_update_the_menu_without_a_restart()
     assert_eq!(restarted.state().settings, state.settings);
     core.set_language(Some(Language::En));
     assert_eq!(tray::menu(&core.state())[0].label, "Open Noxdeck");
+    core.set_language(Some(Language::It));
+    assert_eq!(tray::menu(&core.state())[0].label, "Apri Noxdeck");
+    assert_eq!(f.core().state().lang, Language::It);
     core.set_language(None);
     assert_eq!(core.state().settings.language, None);
 }

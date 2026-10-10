@@ -52,6 +52,6 @@ fn show_game_start_round_trips_both_values() {
 }
 
 #[test]
-fn language_round_trips_follow_windows_and_both_languages() {
-    round_trip("language", &[Value::Null, json!("ru"), json!("en")]);
+fn language_round_trips_follow_windows_and_all_languages() {
+    round_trip("language", &[Value::Null, json!("ru"), json!("en"), json!("it")]);
 }

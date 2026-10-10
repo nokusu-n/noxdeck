@@ -69,7 +69,7 @@ function killInside(dir) {
 /**
  * Start the app on a fresh test launcher directory.
  * opts: scenario (object for scenario.json), list (initial SavedAccountNames),
- *       accounts (records for accounts.json), settings (object), lang ("ru" | "en"),
+ *       accounts (records for accounts.json), settings (object), lang ("ru" | "en" | "it"),
  *       env (extra environment), noInstall (leave the launcher uninstalled).
  */
 export async function startApp(opts = {}) {
@@ -111,7 +111,7 @@ export async function startApp(opts = {}) {
     NOXDECK_GAME_SETTLE_MS: "900",
     NOXDECK_INSTANCE: `e2e-${process.pid}-${nextPort}`,
     NOXDECK_AUTOSTART_NAME: `NoxDeck-Test-e2e-${process.pid}-${nextPort}`,
-    NOXDECK_LOCALE: opts.lang === "ru" ? "ru-RU" : "en-US",
+    NOXDECK_LOCALE: { ru: "ru-RU", en: "en-US", it: "it-IT" }[opts.lang ?? "en"],
     TEMP: tmp,
     TMP: tmp,
     ...opts.env,

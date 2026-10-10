@@ -29,7 +29,7 @@ pub enum AfterStart {
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
-pub enum Language { Ru, En }
+pub enum Language { Ru, En, It }
 
 fn enabled() -> bool { true }
 
@@ -67,7 +67,10 @@ impl Default for Settings {
 impl Settings {
     pub fn resolved_language(&self, locale: &str) -> Language {
         self.language.unwrap_or_else(|| {
-            if locale.to_ascii_lowercase().starts_with("ru") { Language::Ru } else { Language::En }
+            let locale = locale.to_ascii_lowercase();
+            if locale.starts_with("ru") { Language::Ru }
+            else if locale.starts_with("it") { Language::It }
+            else { Language::En }
         })
     }
     /// The stored settings, and whether a broken file was set aside to get them.

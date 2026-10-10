@@ -84,7 +84,7 @@ export function AccountRecord({ account: a, loggingIn, phase, busy, launcherFoun
             <span data-testid={`state-${a.id}`} data-state={look.id} className={look.chip ? `chip chip--${look.chip.tone}` : "sr-only"} title={look.chip?.title}>
               {look.chip ? look.chip.text : t("stateReady")}
             </span>
-            <span data-testid={`email-${a.id}`} className={a.email ? "mail" : "mail mail--missing"}>{a.email ?? t("noEmail")}</span>
+            <span data-testid={`email-${a.id}`} className={a.email ? "mail" : "mail mail--missing"} title={a.email ?? t("noEmail")}>{a.email ?? t("noEmail")}</span>
           </div>
         </div>
         <button data-testid={`delete-${a.id}`} className="btn btn--icon btn-del" disabled={busy} title={t("delete")} onClick={onDelete}>

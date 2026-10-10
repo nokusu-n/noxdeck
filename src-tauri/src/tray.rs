@@ -12,15 +12,14 @@ pub struct TrayItem {
 }
 
 pub fn menu(state: &State) -> Vec<TrayItem> {
-    let ru = state.lang == Language::Ru;
+    let (open, in_game, in_launcher, exit) = match state.lang {
+        Language::Ru => ("Открыть Noxdeck", " — в игре", " — в Battle.net", "Выход"),
+        Language::En => ("Open Noxdeck", " — in game", " — in Battle.net", "Exit"),
+        Language::It => ("Apri Noxdeck", " — in gioco", " — in Battle.net", "Esci"),
+    };
     let mut items = vec![TrayItem {
         id: "open".into(),
-        label: if ru {
-            "Открыть Noxdeck"
-        } else {
-            "Open Noxdeck"
-        }
-        .into(),
+        label: open.into(),
         enabled: true,
     }];
     let mut accounts: Vec<_> = state.accounts.iter().collect();
@@ -33,17 +32,9 @@ pub fn menu(state: &State) -> Vec<TrayItem> {
             .unwrap_or("—")
             .to_owned();
         if a.is_in_game {
-            label.push_str(if ru {
-                " — в игре"
-            } else {
-                " — in game"
-            });
+            label.push_str(in_game);
         } else if a.is_current && !state.settings.show_game_start {
-            label.push_str(if ru {
-                " — в Battle.net"
-            } else {
-                " — in Battle.net"
-            });
+            label.push_str(in_launcher);
         }
         items.push(TrayItem {
             id: format!("acc-{}", a.id),
@@ -57,7 +48,7 @@ pub fn menu(state: &State) -> Vec<TrayItem> {
     }
     items.push(TrayItem {
         id: "exit".into(),
-        label: if ru { "Выход" } else { "Exit" }.into(),
+        label: exit.into(),
         enabled: true,
     });
     items

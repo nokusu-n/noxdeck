@@ -61,10 +61,10 @@ export function SettingsScreen({ state, api, run }: {
           <span className="set-text"><span data-testid="settings-language-title" className="set-label">{t("language")}</span></span>
           {/* Each language is named in itself, so a player can find theirs from any state of the window. */}
           <div className="seg" role="radiogroup" aria-label={t("language")}>
-            {(["ru", "en"] as const).map((v) => (
+            {([["ru", "languageRu"], ["en", "languageEn"], ["it", "languageIt"]] as const).map(([v, key]) => (
               <label key={v} className={`seg-b${state.lang === v ? " is-on" : ""}`}>
                 <input data-testid={`set-lang-${v}`} type="radio" name="language" value={v} checked={state.lang === v} onChange={() => run(() => api.setLanguage(v))} />
-                {v === "ru" ? t("languageRu") : t("languageEn")}
+                {t(key)}
               </label>
             ))}
           </div>
