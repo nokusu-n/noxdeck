@@ -1,7 +1,7 @@
 //! An in-memory journal. Entries accept only typed facts, never launcher text.
 use crate::{lock, launcher::{LauncherEvent, ProcessError, ProcessSnapshot}, Core, OpKind, Phase, Refusal};
 use serde::Serialize;
-use std::collections::VecDeque;
+use std::collections::{BTreeMap, VecDeque};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant, SystemTime};
@@ -33,7 +33,7 @@ impl Event {
 }
 #[derive(Clone, Copy, Debug)]
 pub enum Outcome { Success, NoAnswer, GameNeedsUpdate, GameNotStarted, PasswordWanted, CodeWanted, Cancelled, Failed }
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub enum Step {
     OperationBegan { kind: OpKind, account: Option<u32> },
     OperationRefused { kind: OpKind, refusal: Refusal },
@@ -47,8 +47,8 @@ pub enum Step {
     ConfigWritten { success: bool },
     CommandResult { command: Command, success: bool, error_code: Option<i32> },
     StopAttempt { game: bool, success: bool, error_code: Option<i32> },
-    LauncherStopSnapshot { remaining: usize },
-    LauncherStopProcesses { executables: [usize; 3] },
+    StopSnapshot { game: bool, remaining: usize },
+    LauncherStopProcesses { selected: bool, executables: BTreeMap<crate::launcher::ExecutableName, usize> },
     Window(Window),
 }
 struct Entry { wall: SystemTime, at: Instant, step: Step }
@@ -90,7 +90,7 @@ impl Journal {
         for entry in &entries.entries {
             let delta = previous.map_or(0, |previous| entry.at.saturating_duration_since(previous).as_millis());
             previous = Some(entry.at);
-            let _ = writeln!(text, "{} +{}ms {}", wall_time(entry.wall), delta, step_text(entry.step));
+            let _ = writeln!(text, "{} +{}ms {}", wall_time(entry.wall), delta, step_text(&entry.step));
         }
         text
     }
@@ -106,15 +106,14 @@ impl Drop for Wait {
     fn drop(&mut self) { self.journal.record(Step::WaitEnded { what: self.what, bound_ms: self.bound_ms, elapsed_ms: self.started.elapsed().as_millis(), end: self.end }); }
 }
 fn account_text(account: Option<u32>) -> String { account.map_or_else(|| "no account".into(), |n| format!("account {n}")) }
-fn step_text(step: Step) -> String {
+fn step_text(step: &Step) -> String {
     match step {
-        Step::OperationBegan { kind, account } => format!("Operation began: {kind:?}, {}", account_text(account)),
-        Step::OperationEnded { kind, account, outcome } => format!("Operation ended: {kind:?}, {}, {outcome:?}", account_text(account)),
-        Step::LauncherEvent { event, account, historic } => format!("Launcher event: {event:?}, {}, historic={historic}", account_text(account)),
-        Step::LauncherStopProcesses { executables } => {
-            let names: Vec<_> = crate::launcher::LauncherExecutable::ALL.into_iter().zip(executables)
-                .map(|(exe, count)| format!("{}={count}", exe.file_name())).collect();
-            format!("Launcher processes selected: count={}, {}", executables.iter().sum::<usize>(), names.join(", "))
+        Step::OperationBegan { kind, account } => format!("Operation began: {kind:?}, {}", account_text(*account)),
+        Step::OperationEnded { kind, account, outcome } => format!("Operation ended: {kind:?}, {}, {outcome:?}", account_text(*account)),
+        Step::LauncherEvent { event, account, historic } => format!("Launcher event: {event:?}, {}, historic={historic}", account_text(*account)),
+        Step::LauncherStopProcesses { selected, executables } => {
+            let names: Vec<_> = executables.iter().map(|(exe, count)| format!("{}={count}", exe.file_name())).collect();
+            format!("Launcher directory processes {}: count={}, {}", if *selected { "selected" } else { "excluded" }, executables.values().sum::<usize>(), if names.is_empty() { "none".into() } else { names.join(", ") })
         }
         step => format!("{step:?}"),
     }
@@ -132,7 +131,10 @@ impl Core {
     pub fn diagnostics_text(&self) -> String {
         use std::fmt::Write;
         let inner = lock(&self.inner);
-        let mut text = format!("Noxdeck {} diagnostics\nTimes are UTC; durations are milliseconds.\nWindows: {}\nSystem locale: {}\nInterface language: {:?}\nNoxdeck elevated: {:?}\nLauncher found: {}\n\nTiming\n", self.version(), windows_version(), safe_locale(&self.locale), inner.settings.resolved_language(&self.locale), elevated(), inner.install.is_some());
+        let language = match inner.settings.resolved_language(&self.locale) {
+            crate::settings::Language::En => "en", crate::settings::Language::Ru => "ru", crate::settings::Language::It => "it",
+        };
+        let mut text = format!("Noxdeck {} diagnostics\nTimes are UTC; durations are milliseconds.\nWindows: {}\nSystem locale: {}\nInterface language: {}\nNoxdeck elevated: {}\nLauncher found: {}\n\nTiming\n", self.version(), windows_version(), safe_locale(&self.locale), language, yes_no(elevated()), yes_no(Some(inner.install.is_some())));
         for (name, value) in self.timing.values() { let _ = writeln!(text, "{name}: {}ms", value.as_millis()); }
         text.push_str("\nSettings\n");
         let _ = writeln!(text, "{}\nautostart: {}", serde_json::to_string_pretty(&inner.settings).unwrap(), inner.autostart);
@@ -156,6 +158,18 @@ impl Core {
             Ok(None) => SaveResult::Cancelled,
             Err(_) => SaveResult::Failed,
         }
+    }
+}
+fn yes_no(value: Option<bool>) -> &'static str {
+    match value { Some(true) => "yes", Some(false) => "no", None => "unknown" }
+}
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn optional_booleans_read_plainly() {
+        assert_eq!(super::yes_no(Some(true)), "yes");
+        assert_eq!(super::yes_no(Some(false)), "no");
+        assert_eq!(super::yes_no(None), "unknown");
     }
 }
 fn safe_locale(locale: &str) -> &str {

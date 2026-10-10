@@ -36,11 +36,28 @@ fn scripted_start_exports_only_typed_steps_and_no_account_or_launcher_text() {
     for expected in ["Operation began: Start, account 1", "Operation ended: Start, account 1, Success", "Launcher event: LoggedIn, account 1", "WaitBegan", "elapsed_ms", "bound_ms", "Snapshot", "StartLauncher", "SelectAccount", "Windows:", "System locale:"] { assert!(text.contains(expected), "missing {expected}"); }
     assert!(text.contains("Operation ended: Game, account 1, Success"));
     assert!(text.contains("GameProcess"));
+    assert!(text.contains("Interface language: en\n"));
+    assert!(text.contains("Launcher found: yes\n"));
+    assert!(text.contains("Noxdeck elevated: yes\n") || text.contains("Noxdeck elevated: no\n") || text.contains("Noxdeck elevated: unknown\n"));
+    assert!(!text.split("\nTiming\n").next().unwrap().contains("Some("));
     if let Some(path) = std::env::var_os("NOXDECK_SAMPLE_DIAGNOSTICS") { core.write_diagnostics(std::path::Path::new(&path)).unwrap(); }
     let before: Vec<_> = std::fs::read_dir(&f.paths.data).unwrap().map(|e| e.unwrap().file_name()).collect();
     core.journal.record(Step::Command(Command::LaunchGame));
     let after: Vec<_> = std::fs::read_dir(&f.paths.data).unwrap().map(|e| e.unwrap().file_name()).collect();
     assert_eq!(before, after, "journalling writes nothing");
+}
+
+#[test]
+fn header_uses_language_codes_and_plain_launcher_availability() {
+    for (language, code) in [(noxdeck_lib::settings::Language::En, "en"), (noxdeck_lib::settings::Language::Ru, "ru"), (noxdeck_lib::settings::Language::It, "it")] {
+        let f = Fake::new();
+        let core = f.core();
+        core.set_language(Some(language));
+        assert!(core.diagnostics_text().contains(&format!("Interface language: {code}\n")));
+        std::fs::remove_file(f.paths.config_file()).unwrap();
+        core.tick();
+        assert!(core.diagnostics_text().contains("Launcher found: no\n"));
+    }
 }
 
 #[test]

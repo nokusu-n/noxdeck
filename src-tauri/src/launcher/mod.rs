@@ -13,13 +13,18 @@ pub const LAUNCHER_EXE: &str = "Battle.net Launcher.exe";
 pub const CLIENT_EXE: &str = "Battle.net.exe";
 pub const GAME_LAUNCH_COMMAND: &str = "--exec=launch Pro";
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum LauncherExecutable { Launcher, Client, Helper }
-impl LauncherExecutable {
-    pub const ALL: [Self; 3] = [Self::Launcher, Self::Client, Self::Helper];
-    pub fn file_name(self) -> &'static str {
-        match self { Self::Launcher => LAUNCHER_EXE, Self::Client => CLIENT_EXE, Self::Helper => "Battle.net Helper.exe" }
+/// A diagnostic executable name can contain neither its directory nor account text.
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct ExecutableName(String);
+impl ExecutableName {
+    pub fn from_path(path: &Path) -> Option<Self> {
+        let name = path.file_name()?.to_string_lossy();
+        let name = if name.contains(['@', '#']) || name.chars().any(char::is_control) {
+            "<masked executable>".to_owned()
+        } else { name.into_owned() };
+        Some(Self(name))
     }
+    pub fn file_name(&self) -> &str { &self.0 }
 }
 
 /// Where everything lives. The environment can move every location, which is how

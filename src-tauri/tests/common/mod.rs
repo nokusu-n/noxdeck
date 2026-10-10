@@ -154,7 +154,12 @@ impl Processes for RecordingProcesses {
     fn stop_launcher(&self, _: &Path, _: Duration) -> Result<(), ProcessError> {
         let mut s = self.s.lock().unwrap();
         if let Some(journal) = &s.journal {
-            journal.record(noxdeck_lib::diagnostics::Step::LauncherStopProcesses { executables: [0, usize::from(s.running), 0] });
+            let mut executables = std::collections::BTreeMap::new();
+            if s.running {
+                executables.insert(noxdeck_lib::launcher::ExecutableName::from_path(Path::new(noxdeck_lib::launcher::CLIENT_EXE)).unwrap(), 1);
+            }
+            journal.record(noxdeck_lib::diagnostics::Step::LauncherStopProcesses { selected: true, executables });
+            journal.record(noxdeck_lib::diagnostics::Step::LauncherStopProcesses { selected: false, executables: Default::default() });
         }
         if s.running {
             s.calls.push("stop_launcher".into());

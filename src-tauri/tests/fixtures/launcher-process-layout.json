@@ -1,6 +1,8 @@
 [
   {"path":"C:/StandIn/Install/Battle.net Launcher.exe", "launcher":true},
   {"path":"C:/StandIn/Install/Battle.net.exe", "launcher":true},
+  {"path":"C:/StandIn/Install/Battle.net Extra Helper.exe", "launcher":true},
+  {"path":"C:/StandIn/Install/Battle.net.17896/Battle.net Extra Helper.exe", "launcher":true},
   {"path":"C:/StandIn/Install/Battle.net.17896/Battle.net.exe", "launcher":true},
   {"path":"C:/StandIn/Install/Battle.net.17896/Battle.net Helper.exe", "launcher":true},
   {"path":"C:/StandIn/Install/Battle.net.17895/Battle.net Launcher.exe", "launcher":true},
@@ -10,6 +12,7 @@
   {"path":"C:/StandIn/Install/FakeGame.exe", "launcher":false},
   {"path":"C:/StandIn/Install/Battle.net.17896/Overwatch.exe", "launcher":false},
   {"path":"C:/StandIn/Install/Games/Battle.net.exe", "launcher":false},
+  {"path":"C:/StandIn/Install/Games/Battle.net Extra Helper.exe", "launcher":false},
   {"path":"C:/StandIn/Install/Battle.net.next/Battle.net.exe", "launcher":false},
   {"path":"C:/StandIn/Install/Battle.net.17896/Support/Battle.net Helper.exe", "launcher":false},
   {"path":"C:/StandIn/Install/Agent.exe", "launcher":false},

@@ -55,15 +55,15 @@ fn success_covers_close_on_off_launcher_stays_exits_and_reuse() {
 }
 
 #[test]
-fn failures_still_reveal_the_launcher_for_either_setting() {
+fn failures_reveal_the_hidden_launcher_without_activation_for_either_setting() {
     for close in [true,false] { for playable in [false,true] {
         let f=seeded(close,AfterStart::Close);
         let sim=f.sim.clone(); f.procs.on_start(move ||login(&sim.new_run(),playable));
         let core=f.core(); core.start_game(ID,false).unwrap(); wait_idle(&core);
         assert_eq!(core.state().accounts[0].last_outcome,Some(if playable {"game_not_started"}else{"game_needs_update"}));
         let calls=f.procs.calls();
-        assert_eq!(calls.iter().filter(|c|c.as_str()=="show_windows").count(),1);
-        assert!(!calls.iter().any(|c|c=="show_windows_no_activate"));
+        assert!(!calls.iter().any(|c|c=="show_windows"));
+        assert_eq!(calls.iter().filter(|c|c.as_str()=="show_windows_no_activate").count(),1);
         assert!(!f.procs.is_hidden());
         wait_for(&core,"failed start shows Noxdeck", |_|f.shell.requests().contains(&ShellRequest::ShowWindow));
     } }

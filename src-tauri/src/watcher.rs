@@ -69,18 +69,20 @@ impl Core {
                 inner.game_readiness = GameReadiness::Unknown;
             }
             // A late config/cache write must not leave a listed account incomplete.
-            let current = match &inner.session { Session::LoggedIn(id) if snapshot.launcher_running => Some(id.clone()), _ => None };
-            for account in &mut inner.registry.accounts {
-                if account.email.is_none() && current.as_deref() == Some(&account.id) {
-                    if let Some(email) = config::first_saved_name(&self.paths.config_file()) {
-                        account.email = Some(email);
-                        dirty = true;
+            if snapshot.launcher_running {
+                let current = match &inner.session { Session::LoggedIn(id) => Some(id.clone()), _ => None };
+                for account in &mut inner.registry.accounts {
+                    if account.email.is_none() && current.as_deref() == Some(&account.id) {
+                        if let Some(email) = config::first_saved_name(&self.paths.config_file()) {
+                            account.email = Some(email);
+                            dirty = true;
+                        }
                     }
-                }
-                if account.battletag.is_none() {
-                    if let Some(tag) = cache::battle_tag(&self.paths.cache_db(), &account.id) {
-                        account.battletag = Some(tag);
-                        dirty = true;
+                    if account.battletag.is_none() {
+                        if let Some(tag) = cache::battle_tag(&self.paths.cache_db(), &account.id) {
+                            account.battletag = Some(tag);
+                            dirty = true;
+                        }
                     }
                 }
             }
@@ -116,7 +118,7 @@ impl Core {
                 if inner.outcomes.get(&id).is_some_and(|(note, _)| *note == "no_answer") {
                     inner.outcomes.remove(&id);
                 }
-                let tag = cache::battle_tag(&self.paths.cache_db(), &id);
+                let tag = if inner.launcher_running { cache::battle_tag(&self.paths.cache_db(), &id) } else { None };
                 let Some(a) = inner.registry.find_mut(&id) else {
                     return false;
                 };

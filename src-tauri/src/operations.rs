@@ -352,10 +352,10 @@ impl Core {
             outcome
         });
         // Joining the hiding loop above prevents it from hiding a revealed window.
-        if outcome != Some("game_started") {
-            self.processes.show_windows(&install);
-        } else if !close_launcher && !reuse && self.processes.launcher_running(&install) {
+        if !reuse && self.processes.launcher_running(&install) {
             self.processes.show_windows_no_activate(&install);
+        } else if outcome != Some("game_started") {
+            self.processes.show_windows(&install);
         }
         self.set_phase(Phase::Finishing);
         {

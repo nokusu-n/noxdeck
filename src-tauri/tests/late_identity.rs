@@ -2,6 +2,28 @@ mod common;
 use common::*;
 
 #[test]
+fn stopped_launcher_does_not_read_cached_identity_until_it_runs_again() {
+    let f = Fake::new();
+    f.seed_accounts(&accounts_file(&[account_json("aaaa0001", None, None, "ready")]));
+    f.sim.set_list("placeholder@example.com");
+    f.sim.cache_row("aaaa0001", "ExamplePlayer#12345");
+    let run = f.sim.new_run();
+    run.login("aaaa0001");
+    let core = f.core();
+    for _ in 0..3 {
+        core.tick();
+        let state = core.state();
+        assert!(account(&state, "aaaa0001").email.is_none());
+        assert!(account(&state, "aaaa0001").battletag.is_none(), "a stopped launcher's cache is not used, even after a historic login");
+    }
+    f.procs.set_running(true);
+    run.login("aaaa0001");
+    core.tick();
+    assert_eq!(account(&core.state(), "aaaa0001").email.as_deref(), Some("placeholder@example.com"));
+    assert_eq!(account(&core.state(), "aaaa0001").battletag.as_deref(), Some("ExamplePlayer#12345"));
+}
+
+#[test]
 fn expired_identity_waits_are_repaired_by_a_later_tick_and_persisted() {
     let f = Fake::new();
     let sim = f.sim.clone();

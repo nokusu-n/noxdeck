@@ -2,8 +2,9 @@
 //! numeric version folder. A game inside the install is still only a game.
 
 use super::{
-    ProcessError, ProcessSnapshot, Processes, LauncherExecutable, CLIENT_EXE, GAME_LAUNCH_COMMAND, LAUNCHER_EXE,
+    ProcessError, ProcessSnapshot, Processes, ExecutableName, CLIENT_EXE, GAME_LAUNCH_COMMAND, LAUNCHER_EXE,
 };
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
@@ -74,20 +75,36 @@ fn scoped_owner(current: u32, remembered: u32, allowed: &[u32]) -> bool {
 }
 
 fn scoped_executable(pid: u32, install: &Path, exe: impl FnOnce(u32) -> Option<PathBuf>) -> bool {
-    exe(pid).is_some_and(|path| launcher_executable(&path, install).is_some())
+    exe(pid).is_some_and(|path| launcher_executable(&path, install))
 }
 
-fn launcher_executable(path: &Path, install: &Path) -> Option<LauncherExecutable> {
+fn launcher_executable(path: &Path, install: &Path) -> bool {
     let dir = format!("{}\\", norm(install).trim_end_matches('\\'));
     let path = norm(path);
-    let parts: Vec<_> = path.strip_prefix(&dir)?.split('\\').collect();
+    let Some(relative) = path.strip_prefix(&dir) else { return false; };
+    let parts: Vec<_> = relative.split('\\').collect();
     let name = match parts.as_slice() {
         [name] => *name,
         [version, name] if version.strip_prefix("battle.net.").is_some_and(|build|
             !build.is_empty() && build.bytes().all(|b| b.is_ascii_digit())) => *name,
-        _ => return None,
+        _ => return false,
     };
-    LauncherExecutable::ALL.into_iter().find(|exe| exe.file_name().eq_ignore_ascii_case(name))
+    name.starts_with("battle.net") && name.ends_with(".exe")
+}
+
+fn stop_inventory<'a>(paths: impl IntoIterator<Item = &'a Path>, install: &Path)
+    -> (BTreeMap<ExecutableName, usize>, BTreeMap<ExecutableName, usize>)
+{
+    let dir = format!("{}\\", norm(install).trim_end_matches('\\'));
+    let (mut selected, mut excluded) = (BTreeMap::new(), BTreeMap::new());
+    for path in paths {
+        if !norm(path).starts_with(&dir) { continue; }
+        if let Some(name) = ExecutableName::from_path(path) {
+            let counts = if launcher_executable(path, install) { &mut selected } else { &mut excluded };
+            *counts.entry(name).or_insert(0) += 1;
+        }
+    }
+    (selected, excluded)
 }
 
 type Hwnd = *mut std::ffi::c_void;
@@ -165,8 +182,17 @@ mod tests {
     fn launcher_names_in_root_and_numeric_version_folders_are_all_found() {
         let install = Path::new("C:/StandIn/Install");
         for entry in layout() {
-            assert_eq!(launcher_executable(&entry.path, install).is_some(), entry.launcher, "{}", entry.path.display());
+            assert_eq!(launcher_executable(&entry.path, install), entry.launcher, "{}", entry.path.display());
             assert_eq!(scoped_executable(101, install, |_| Some(entry.path)), entry.launcher);
+        }
+        for name in ["BATTLE.NET NEW HELPER.EXE", "battle.net-x.exe", "Battle.net.exe"] {
+            assert!(launcher_executable(&install.join(name), install));
+            assert!(launcher_executable(&install.join("Battle.net.12345").join(name), install));
+            assert!(!launcher_executable(&install.join("Games").join(name), install));
+            assert!(!launcher_executable(&Path::new("C:/Elsewhere").join(name), install));
+        }
+        for name in ["Battle.net Helper.dll", "Battle.net.exe.old", "NotBattle.net.exe", "Overwatch.exe"] {
+            assert!(!launcher_executable(&install.join(name), install));
         }
     }
 
@@ -184,42 +210,74 @@ mod tests {
         }
         let mut snapshots = std::collections::VecDeque::from([selected.clone(), vec![]]);
         let mut stopped = Vec::new();
-        assert_eq!(stop_until_gone(Duration::from_millis(250), || snapshots.pop_front().unwrap_or_default(),
+        assert_eq!(stop_until_gone(false, Duration::from_millis(250), || snapshots.pop_front().unwrap_or_default(),
             |pid| { stopped.push(pid); Ok(()) }, |_| {}), Ok(()));
         assert_eq!(stopped, selected);
         assert_eq!(stopped.len(), layout.iter().filter(|entry| entry.launcher).count());
     }
 
     #[test]
-    fn diagnostics_identify_selected_executable_names_and_counts_without_paths() {
+    fn diagnostics_identify_selected_and_excluded_executable_names_and_counts_without_paths() {
+        let layout = layout();
+        let (selected, excluded) = stop_inventory(layout.iter().map(|entry| entry.path.as_path()), Path::new("C:/StandIn/Install"));
+        assert_eq!(selected.values().sum::<usize>(), layout.iter().filter(|entry| entry.launcher).count());
+        assert_eq!(selected[&ExecutableName::from_path(Path::new("Battle.net Extra Helper.exe")).unwrap()], 2);
+        assert_eq!(excluded[&ExecutableName::from_path(Path::new("Overwatch.exe")).unwrap()], 3);
+        assert_eq!(excluded[&ExecutableName::from_path(Path::new("Battle.net Extra Helper.exe")).unwrap()], 1);
         let journal = Journal::default();
-        journal.record(Step::LauncherStopProcesses { executables: [1, 2, 3] });
+        journal.record(Step::LauncherStopProcesses { selected: true, executables: selected });
+        journal.record(Step::LauncherStopProcesses { selected: false, executables: excluded });
         let text = journal.text();
-        assert!(text.contains("count=6"));
-        for exe in LauncherExecutable::ALL { assert!(text.contains(exe.file_name())); }
+        assert!(text.contains("Launcher directory processes selected: count=8"));
+        assert!(text.contains("Launcher directory processes excluded: count=9"));
+        assert!(text.contains("Battle.net Extra Helper.exe=2"));
+        assert!(text.contains("Overwatch.exe=3"));
+        assert!(text.contains("Battle.net Extra Helper.exe=1"));
         assert!(!text.contains("StandIn"));
         assert!(!text.contains("C:"));
+    }
+
+    #[test]
+    fn diagnostic_executable_names_cannot_include_paths_or_account_text() {
+        for path in ["C:/StandIn/private/Battle.net placeholder@example.com.exe", "C:/StandIn/private/ExamplePlayer#12345.exe", "C:/StandIn/private/multi\nline.exe"] {
+            let name = ExecutableName::from_path(Path::new(path)).unwrap();
+            assert_eq!(name.file_name(), "<masked executable>");
+        }
     }
 
     #[test]
     fn failed_kills_of_lingering_helpers_succeed_when_the_list_becomes_empty() {
         let mut snapshots = std::collections::VecDeque::from([vec![101, 102], vec![102], vec![]]);
         let mut attempts = 0;
-        let result = stop_until_gone(Duration::from_millis(350), || snapshots.pop_front().unwrap_or_default(), |_| { attempts += 1; Err(87) }, |_| {});
+        let result = stop_until_gone(false, Duration::from_millis(350), || snapshots.pop_front().unwrap_or_default(), |_| { attempts += 1; Err(87) }, |_| {});
         assert_eq!(result, Ok(()));
         assert_eq!(attempts, 3);
+    }
+
+    #[test]
+    fn a_failed_game_kill_succeeds_when_the_game_leaves_and_retries_while_alive() {
+        let mut snapshots = std::collections::VecDeque::from([vec![101], vec![101], vec![]]);
+        let mut attempts = 0;
+        let mut steps = Vec::new();
+        let result = stop_until_gone(true, Duration::from_millis(350),
+            || snapshots.pop_front().unwrap_or_default(),
+            |_| { attempts += 1; Err(5) }, |step| steps.push(step));
+        assert_eq!(result, Ok(()));
+        assert_eq!(attempts, 2);
+        assert!(steps.iter().all(|step| matches!(step, Step::StopAttempt { game: true, .. } | Step::StopSnapshot { game: true, .. })));
+        assert!(matches!(steps.last(), Some(Step::StopSnapshot { game: true, remaining: 0 })));
     }
 
     #[test]
     fn only_access_refused_to_a_process_still_alive_at_the_bound_means_administrator() {
         for (code, expected) in [(5, ProcessError::AccessDenied), (87, ProcessError::TimedOut)] {
             let started = Instant::now();
-            let result = stop_until_gone(Duration::from_millis(30), || vec![101], |_| Err(code), |_| {});
+            let result = stop_until_gone(false, Duration::from_millis(30), || vec![101], |_| Err(code), |_| {});
             assert_eq!(result, Err(expected));
             assert!(started.elapsed() >= Duration::from_millis(30));
         }
         let mut snapshots = std::collections::VecDeque::from([vec![101, 102], vec![102], vec![102]]);
-        let result = stop_until_gone(Duration::from_millis(150), || snapshots.pop_front().unwrap_or_else(|| vec![102]), |pid| Err(if pid == 101 { 5 } else { 87 }), |_| {});
+        let result = stop_until_gone(false, Duration::from_millis(150), || snapshots.pop_front().unwrap_or_else(|| vec![102]), |pid| Err(if pid == 101 { 5 } else { 87 }), |_| {});
         assert_eq!(result, Err(ProcessError::TimedOut), "a departed denied process is no evidence about a survivor");
     }
 
@@ -304,7 +362,7 @@ fn snapshot() -> System {
 fn inside<'a>(sys: &'a System, install: &Path) -> Vec<&'a sysinfo::Process> {
     sys.processes()
         .values()
-        .filter(|p| p.exe().is_some_and(|e| launcher_executable(e, install).is_some()))
+        .filter(|p| p.exe().is_some_and(|e| launcher_executable(e, install)))
         .collect()
 }
 
@@ -315,16 +373,6 @@ fn named<'a>(sys: &'a System, exe_name: &str) -> Vec<&'a sysinfo::Process> {
         .collect()
 }
 
-/// Kill every given process; a refusal from the system is "access denied".
-fn kill_all(procs: Vec<&sysinfo::Process>, mut record: impl FnMut(bool, Option<i32>)) -> Result<(), ProcessError> {
-    let mut failure = None;
-    for p in procs {
-        let result = kill(p.pid().as_u32());
-        record(result.is_ok(), result.as_ref().err().copied());
-        if let Err(code) = result { failure = Some(code); }
-    }
-    match failure { Some(5) => Err(ProcessError::AccessDenied), Some(code) => Err(ProcessError::System(code)), None => Ok(()) }
-}
 fn kill(pid: u32) -> Result<(), i32> {
     unsafe {
         let process = OpenProcess(1, 0, pid);
@@ -424,18 +472,14 @@ impl Processes for RealProcesses {
 
     fn stop_launcher(&self, install: &Path, timeout: Duration) -> Result<(), ProcessError> {
         let mut previous = None;
-        stop_until_gone(timeout, || {
+        stop_until_gone(false, timeout, || {
             let sys = snapshot();
             let matched = inside(&sys, install);
-            let mut executables = [0; 3];
-            for process in &matched {
-                if let Some(exe) = process.exe().and_then(|path| launcher_executable(path, install)) {
-                    executables[exe as usize] += 1;
-                }
-            }
-            if previous != Some(executables) {
-                self.record(Step::LauncherStopProcesses { executables });
-                previous = Some(executables);
+            let inventory = stop_inventory(sys.processes().values().filter_map(|process| process.exe()), install);
+            if previous.as_ref() != Some(&inventory) {
+                self.record(Step::LauncherStopProcesses { selected: true, executables: inventory.0.clone() });
+                self.record(Step::LauncherStopProcesses { selected: false, executables: inventory.1.clone() });
+                previous = Some(inventory);
             }
             matched.iter().map(|p| p.pid().as_u32()).collect()
         }, kill, |step| self.record(step))
@@ -456,20 +500,14 @@ impl Processes for RealProcesses {
     }
 
     fn stop_game(&self, exe_name: &str) -> Result<(), ProcessError> {
-        kill_all(named(&snapshot(), exe_name), |success, error_code| self.record(Step::StopAttempt { game: true, success, error_code }))?;
-        let deadline = Instant::now() + Duration::from_secs(10);
-        while self.game_running(exe_name) {
-            if Instant::now() >= deadline {
-                return Err(ProcessError::Other("the game did not stop in time".into()));
-            }
-            std::thread::sleep(Duration::from_millis(100));
-        }
-        Ok(())
+        stop_until_gone(true, Duration::from_secs(10), || {
+            named(&snapshot(), exe_name).iter().map(|process| process.pid().as_u32()).collect()
+        }, kill, |step| self.record(step))
     }
 }
 
 fn stop_until_gone(
-    timeout: Duration, mut pids: impl FnMut() -> Vec<u32>,
+    game: bool, timeout: Duration, mut pids: impl FnMut() -> Vec<u32>,
     mut kill: impl FnMut(u32) -> Result<(), i32>, mut record: impl FnMut(Step),
 ) -> Result<(), ProcessError> {
     let deadline = Instant::now() + timeout;
@@ -477,7 +515,7 @@ fn stop_until_gone(
     let mut count = None;
     loop {
         let alive = pids();
-        if count != Some(alive.len()) { record(Step::LauncherStopSnapshot { remaining: alive.len() }); count = Some(alive.len()); }
+        if count != Some(alive.len()) { record(Step::StopSnapshot { game, remaining: alive.len() }); count = Some(alive.len()); }
         denied.retain(|pid| alive.contains(pid));
         if alive.is_empty() { return Ok(()); }
         if Instant::now() >= deadline {
@@ -485,7 +523,7 @@ fn stop_until_gone(
         }
         for pid in alive {
             let result = kill(pid);
-            record(Step::StopAttempt { game: false, success: result.is_ok(), error_code: result.as_ref().err().copied() });
+            record(Step::StopAttempt { game, success: result.is_ok(), error_code: result.as_ref().err().copied() });
             if result == Err(5) { denied.insert(pid); }
         }
         std::thread::sleep(Duration::from_millis(100).min(deadline.saturating_duration_since(Instant::now())));
