@@ -80,8 +80,9 @@ fn process_refresh_continues_independently_of_the_faster_window_passes() {
 }
 
 #[test]
-fn production_windows_are_checked_every_10_ms_and_processes_every_250_ms() {
+fn production_window_cadences_and_handover_pause_match_the_defaults() {
     let timing = Timing::default();
     assert_eq!(timing.hide_interval, Duration::from_millis(10));
     assert_eq!(timing.pid_refresh, Duration::from_millis(250));
+    assert_eq!(timing.handover_pause, Duration::from_secs(5));
 }

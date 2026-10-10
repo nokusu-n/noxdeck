@@ -62,7 +62,7 @@ impl Default for Timing {
             game_timeout: Duration::from_secs(120),
             game_settle: Duration::from_secs(5),
             game_handover: Duration::from_secs(120),
-            handover_pause: Duration::from_secs(15),
+            handover_pause: Duration::from_secs(5),
             hide_interval: Duration::from_millis(10),
             pid_refresh: Duration::from_millis(250),
             ratings_interval: Duration::from_secs(30 * 60),
