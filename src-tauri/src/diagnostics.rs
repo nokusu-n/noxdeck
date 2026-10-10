@@ -15,11 +15,12 @@ pub enum Command { StartLauncher, LaunchGame, StopLauncher, StopGame, SelectAcco
 #[derive(Clone, Copy, Debug)]
 pub enum Window { LauncherHidden, LauncherShown, LauncherShownWithoutActivation, LauncherDestroyed, AppShown, AppHidden, AppDestroyed }
 #[derive(Clone, Copy, Debug)]
-pub enum Event { GameLaunched, Playable, NotPlayable, ReadinessUnknown, LoggedIn, LoggedOut, LoginScreen, CodeScreen }
+pub enum Event { GameLaunchStarted, GameLaunched, Playable, NotPlayable, ReadinessUnknown, LoggedIn, LoggedOut, LoginScreen, CodeScreen }
 impl Event {
     pub fn from_launcher(event: &LauncherEvent) -> Self {
         use crate::launcher::GameReadiness::*;
         match event {
+            LauncherEvent::GameLaunchStarted => Self::GameLaunchStarted,
             LauncherEvent::GameLaunched => Self::GameLaunched,
             LauncherEvent::GameReadiness(Playable) => Self::Playable,
             LauncherEvent::GameReadiness(NotPlayable) => Self::NotPlayable,

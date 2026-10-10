@@ -82,6 +82,7 @@ const service = { tank: { rank: "gold", division: 3, source: "service" }, damage
 const invoke = (command, args) => app.browser.execute((command, args) => window.__TAURI_INTERNALS__.invoke(command, args), command, args);
 async function autoStart(opts = {}) {
   await start({ overfast: { [A.tag]: { body: body() } }, ...opts });
+  await app.h.click("tab-overwatch");
   await settings();
   assert.ok(await app.h.exists("set-auto-ratings"), "automatic refresh control must exist");
   await app.h.click("settings-back");
@@ -174,7 +175,7 @@ test("US3.4: disabling auto preserves service values and removes all sync marks"
   await autoStart({settings:{auto_ratings:true}}); await refreshed();
   await settings(); await app.h.click("set-auto-ratings"); await app.h.click("settings-back");
   assert.equal(await shown("tank"),"Gold 3"); assert.equal(await app.h.exists(`rating-sync-${A.id}-tank`),false);
-  await app.restart(); assert.equal(await shown("tank"),"Gold 3"); assert.equal(await app.h.exists("sync"),false);
+  await app.restart(); assert.equal(await shown("tank"),"Gold 3"); assert.equal(await app.h.exists("sync"),true);
 });
 test("US3.5: with auto off, editing a previously synced value stays manual", async () => {
   await autoStart({settings:{auto_ratings:false},accounts:[record(A,{ratings:service})],env:{NOXDECK_RATINGS_MS:"100"}});

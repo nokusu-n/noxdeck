@@ -48,7 +48,8 @@ fn startup_state_reads_the_shell_and_never_persists_a_claim_in_settings() {
     assert!(!core.state().settings.autostart);
     core.set_autostart(true).unwrap();
     assert!(core.state().settings.autostart);
-    assert!(!f.paths.data.join("settings.json").exists());
+    let saved: serde_json::Value = serde_json::from_slice(&std::fs::read(f.paths.data.join("settings.json")).unwrap()).unwrap();
+    assert!(saved.get("autostart").is_none());
     startup.present.store(false, Ordering::SeqCst);
     core.tick();
     assert!(!core.state().settings.autostart);

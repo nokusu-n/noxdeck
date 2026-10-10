@@ -25,7 +25,7 @@ export const accounts: Account[] = [
 export const base: State = {
   tab: "all", visibleAccountIds: accounts.map(a => a.id),
   syncing: false,
-  version: "0.6.0",
+  version: "0.7.0",
   launcher: "logged_in",
   gameRunning: true,
   operation: null,
@@ -34,7 +34,7 @@ export const base: State = {
   dismissed: { rememberLogin: true, logoutWarning: true },
   notice: null,
   lang: "ru",
-  settings: { hideEmails: false, closeLauncher: true, autoRatings: true, autostart: true, afterStart: "tray", showGameStart: true, language: null },
+  settings: { hideEmails: false, closeLauncher: true, autoRatings: true, autostart: true, afterStart: "tray", language: null },
   ask: null,
 };
 

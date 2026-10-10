@@ -25,6 +25,7 @@ pub fn menu(state: &State) -> Vec<TrayItem> {
     let mut accounts: Vec<_> = state.accounts.iter().collect();
     accounts.sort_by(|a, b| b.last_login_at.cmp(&a.last_login_at));
     for a in accounts.into_iter().take(5) {
+        let game_start = a.game == crate::registry::Game::Overwatch;
         let cancelling = state.operation.as_ref().is_some_and(|op| op.account_id.as_deref() == Some(&a.id) && op.cancellable);
         let mut label = a
             .battletag
@@ -37,7 +38,7 @@ pub fn menu(state: &State) -> Vec<TrayItem> {
         }
         if !cancelling && a.is_in_game {
             label.push_str(in_game);
-        } else if !cancelling && a.is_current && !state.settings.show_game_start {
+        } else if !cancelling && a.is_current && !game_start {
             label.push_str(in_launcher);
         }
         items.push(TrayItem {
@@ -46,9 +47,11 @@ pub fn menu(state: &State) -> Vec<TrayItem> {
             enabled: cancelling || (state.operation.is_none()
                 && state.launcher != LauncherKind::NotFound
                 && a.email.is_some()
-                && (state.settings.show_game_start || !a.is_in_game)
-                && (state.settings.show_game_start || !a.is_current)),
+                && (game_start || !a.is_current)),
         });
+    }
+    if state.operation.as_ref().is_some_and(|op| op.cancellable && op.account_id.as_ref().is_some_and(|id| !items.iter().any(|item| item.id == format!("acc-{id}")))) {
+        items.push(TrayItem { id: "cancel".into(), label: match state.lang { Language::Ru => "Отмена", Language::En => "Cancel", Language::It => "Annulla" }.into(), enabled: true });
     }
     items.push(TrayItem {
         id: "exit".into(),
@@ -62,6 +65,7 @@ pub fn click(core: &Arc<Core>, item: &str) {
     match item {
         "open" => core.shell.request(ShellRequest::ShowWindow),
         "exit" => core.shell.request(ShellRequest::Exit),
+        "cancel" => core.cancel_operation(),
         _ => {
             let Some(id) = item.strip_prefix("acc-") else {
                 return;
@@ -70,7 +74,7 @@ pub fn click(core: &Arc<Core>, item: &str) {
                 core.cancel_operation();
                 return;
             }
-            let result = if core.state().settings.show_game_start {
+            let result = if core.state().accounts.iter().any(|a| a.id == id && a.game == crate::registry::Game::Overwatch) {
                 core.start_game(id, false)
             } else {
                 core.start_launcher(id)

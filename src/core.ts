@@ -17,7 +17,8 @@ export type Refusal =
   | "game_running"
   | "game_not_closable"
   | "unknown_account"
-  | "game_change_blocked";
+  | "game_change_blocked"
+  | "game_unsupported";
 export type Game = "overwatch" | "world_of_warcraft" | "world_of_warcraft_forever" | "call_of_duty" | "none";
 export const games: Exclude<Game, "none">[] = ["overwatch", "world_of_warcraft", "world_of_warcraft_forever", "call_of_duty"];
 export type Tab = "all" | Exclude<Game, "none">;
@@ -67,7 +68,6 @@ export type State = {
     autoRatings: boolean;
     autostart: boolean;
     afterStart: "stay" | "tray" | "close";
-    showGameStart: boolean;
     language: null | "ru" | "en" | "it";
   };
   ask: null | { kind: "close_game"; accountId: string };

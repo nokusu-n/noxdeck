@@ -45,7 +45,7 @@ fn labels_use_battletag_or_email_and_all_languages_mark_game_and_launcher() {
     assert_eq!(tray::menu(&s)[1].label, "Alpha#1111");
     s.accounts[0].battletag = None;
     assert_eq!(tray::menu(&s)[1].label, "userA@example.com");
-    s.settings.show_game_start = false;
+    s.accounts[0].game = noxdeck_lib::registry::Game::None;
     s.accounts[0].is_current = true;
     assert_eq!(tray::menu(&s)[1].label, "userA@example.com — in Battle.net");
     s.accounts[0].is_in_game = true;
@@ -70,13 +70,13 @@ fn labels_use_battletag_or_email_and_all_languages_mark_game_and_launcher() {
 fn every_fr007_rule_disables_only_affected_items() {
     let base = state();
     for show_game in [true, false] {
-        let mut s = base.clone(); s.settings.show_game_start = show_game;
+        let mut s = base.clone(); s.accounts[0].game = if show_game { noxdeck_lib::registry::Game::Overwatch } else { noxdeck_lib::registry::Game::None };
         assert!(tray::menu(&s)[1].enabled);
         s.accounts[0].is_current = true;
         assert_eq!(tray::menu(&s)[1].enabled, show_game);
         s.accounts[0].is_current = false;
         s.accounts[0].is_in_game = true;
-        assert_eq!(tray::menu(&s)[1].enabled, show_game);
+        assert!(tray::menu(&s)[1].enabled);
         s.accounts[0].is_in_game = false;
         s.accounts[0].email = None;
         assert!(!tray::menu(&s)[1].enabled);

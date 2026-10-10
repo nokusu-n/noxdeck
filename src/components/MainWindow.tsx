@@ -168,7 +168,6 @@ export function MainWindow({ state, api, controls, initial }: {
                 onCancel={() => api.cancelOperation()}
                 busy={busy}
                 launcherFound={found}
-                showGameStart={state.settings.showGameStart}
                 autoRatings={state.settings.autoRatings}
                 pickingRole={picking?.id === a.id ? picking.role : null}
                 onPickRating={(role, anchor) => openPicker(a.id, role, anchor)}

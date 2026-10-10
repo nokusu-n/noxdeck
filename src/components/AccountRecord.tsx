@@ -17,7 +17,6 @@ type Props = {
   /** Some launcher action runs, so no other starts. */
   busy: boolean;
   launcherFound: boolean;
-  showGameStart: boolean;
   autoRatings: boolean;
   /** The role whose picker is open on this record. */
   pickingRole: Role | null;
@@ -45,11 +44,12 @@ function lookOf(a: Account, loggingIn: boolean, phase: Phase | null, started: bo
   if (a.loginState === "password_wanted") return { id: "password_wanted", kind: "bad", mark: "m-pw", chip: { tone: "bad", text: t("statePassword") } };
   if (a.loginState === "code_wanted") return { id: "code_wanted", kind: "bad", mark: "m-code", chip: { tone: "bad", text: t("stateCode") } };
   if (started) return { id: "ready", kind: "ok", mark: "m-started", chip: { tone: "ok", text: t("stateGameStarted") } };
+  if (a.isInGame && a.game !== "overwatch") return { id: "ready", kind: "ok", mark: "m-live", chip: { tone: "ok", text: t("stateInGame") } };
   if (a.isCurrent || a.isInGame) return { id: "ready", kind: "ok", mark: "m-live", chip: null };
   return { id: "ready", kind: "idle", mark: "m-idle", chip: null };
 }
 
-export function AccountRecord({ account: a, loggingIn, phase, operationKind, onCancel, busy, launcherFound, showGameStart, autoRatings, pickingRole, onPickRating, onStart, onDelete, onGame, onPickGame, pickingGame, preview }: Props) {
+export function AccountRecord({ account: a, loggingIn, phase, operationKind, onCancel, busy, launcherFound, autoRatings, pickingRole, onPickRating, onStart, onDelete, onGame, onPickGame, pickingGame, preview }: Props) {
   const [copied, setCopied] = useState(preview === "copied");
   const started = a.lastOutcome === "game_started";
   const look = lookOf(a, loggingIn, phase, started);
@@ -68,6 +68,7 @@ export function AccountRecord({ account: a, loggingIn, phase, operationKind, onC
   const startBlocked = busy || !launcherFound || !a.email;
   const reason = !a.email ? t("startNoEmail") : busy ? t("startBusy") : undefined;
   const lastLogin = a.lastLoginAt ? `${t("lastLogin")}: ${new Date(a.lastLoginAt).toLocaleString(lang)}` : undefined;
+  const showGameStart = a.game === "overwatch";
   const wide = showGameStart || a.game === "none" ? "" : " btn--wide";
   return (
     <li data-testid={`account-${a.id}`} className={`card card--${look.kind}${look.kind === "ok" ? " is-live" : ""}`}>

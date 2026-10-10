@@ -21,6 +21,7 @@ enum Browser {
 
 #[derive(Debug, PartialEq, Eq)]
 enum Line {
+    GameLaunchStarted,
     GameLaunched,
     Readiness(GameReadiness),
     LoggedIn(String),
@@ -30,6 +31,9 @@ enum Line {
 }
 
 fn parse_line(line: &str) -> Line {
+    if let Some((_, fields)) = line.split_once("LaunchBinary:") {
+        if fields.split_ascii_whitespace().any(|field| field == "uid=prometheus") { return Line::GameLaunchStarted; }
+    }
     if line.contains("Launched ") && line.contains("-uid prometheus") {
         return Line::GameLaunched;
     }
@@ -203,6 +207,7 @@ impl LogTail {
         self.offset += used as u64;
         for line in String::from_utf8_lossy(&buf[..used]).lines() {
             match parse_line(line) {
+                Line::GameLaunchStarted => out.events.push(Tailed { event: LauncherEvent::GameLaunchStarted, historic }),
                 Line::GameLaunched => out.events.push(Tailed {
                     event: LauncherEvent::GameLaunched,
                     historic,
@@ -286,6 +291,7 @@ mod tests {
                 LauncherEvent::LoggedIn {
                     id: "aaaa0001".into()
                 },
+                LauncherEvent::GameLaunchStarted,
                 LauncherEvent::GameLaunched,
                 LauncherEvent::LoggedIn {
                     id: "aaaa0002".into()

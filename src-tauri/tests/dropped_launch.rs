@@ -46,6 +46,14 @@ fn the_launchers_new_launch_line_suppresses_a_resend_without_a_process() {
     assert_eq!(commands(&f), 1);
 }
 #[test]
+fn launch_started_without_a_launched_line_or_process_also_suppresses_the_retry() {
+    let (f, core, run) = setup();
+    f.procs.on_launch(move || run.line("LaunchBinary: uid=prometheus binaryType=game"));
+    core.start_game(ID, false).unwrap();
+    wait_idle(&core);
+    assert_eq!(commands(&f), 1);
+}
+#[test]
 fn an_old_launch_line_does_not_suppress_the_new_operations_retry() {
     let (f, core, run) = setup();
     run.line("Launched <game path> -uid prometheus");

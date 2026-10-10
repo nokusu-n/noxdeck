@@ -174,7 +174,7 @@ async function checkLanguage(lang) {
     "operation": ["operationGame"],
   };
   // The record's buttons keep their product names: their tooltips are translated.
-  const named = /^(start|current|ingame)-|^game-(?!dialog$|yes$|no$)/;
+  const named = /^(start|current|ingame|game)-[0-9a-f]{8}$/;
   const check = async (h, ids) => {
     for (const id of ids) {
       const text = id === "sync" || id.startsWith("game-settings-") || id.startsWith("sort-role-") ? await h.el(id).getAttribute("aria-label") : await h.text(id);
@@ -235,6 +235,16 @@ async function checkLanguage(lang) {
   await h.click("tab-overwatch");
   await see(["sort-role-tank", "sort-role-damage", "sort-role-support"]);
   for (const role of ["tank", "damage", "support"]) assert.equal(await h.el(`sort-role-${role}`).getAttribute("aria-label"), t(role));
+  await h.click(`game-settings-${A.id}`);
+  await h.click(`game-option-${A.id}-none`);
+  await see(["game-moved"]);
+  assert.equal(await h.text("game-moved"), t("movedTo").replace("{game}", t("noGame")));
+  await h.click("tab-all");
+  await see([`choose-game-${A.id}`]);
+  assert.equal(await h.text(`choose-game-${A.id}`), t("chooseGame"));
+  await h.click(`choose-game-${A.id}`);
+  await h.click(`game-option-${A.id}-overwatch`);
+  await h.click("tab-overwatch");
   if (lang === "it" && process.env.NOXDECK_CAPTURE_DIR) {
     await app.browser.saveScreenshot(`${process.env.NOXDECK_CAPTURE_DIR}/main-it.png`);
   }

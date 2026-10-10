@@ -109,7 +109,7 @@ impl Core {
             inner.events.remove(0);
         }
         match event {
-            LauncherEvent::GameLaunched => false,
+            LauncherEvent::GameLaunched | LauncherEvent::GameLaunchStarted => false,
             LauncherEvent::GameReadiness(r) => {
                 inner.game_readiness = r;
                 false
@@ -237,7 +237,6 @@ impl Core {
                 auto_ratings: inner.settings.auto_ratings,
                 autostart: inner.autostart,
                 after_start: inner.settings.after_start,
-                show_game_start: inner.settings.legacy_show_game_start.unwrap_or(true),
                 language: inner.settings.language,
             },
             ask: inner.ask.clone(),

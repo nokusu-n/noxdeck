@@ -133,6 +133,7 @@ pub enum Refusal {
     GameRunning,
     GameNotClosable,
     GameChangeBlocked,
+    GameUnsupported,
 }
 
 #[derive(Serialize, Clone, Copy, Debug, PartialEq, Eq)]
@@ -202,7 +203,6 @@ pub struct SettingsView {
     pub auto_ratings: bool,
     pub autostart: bool,
     pub after_start: AfterStart,
-    pub show_game_start: bool,
     pub language: Option<Language>,
 }
 

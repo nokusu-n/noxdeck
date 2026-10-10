@@ -39,7 +39,7 @@ function Shot({ caption, children }: { caption: string; children: ReactNode }) {
   return <figure className="shot"><figcaption>{caption}</figcaption>{children}</figure>;
 }
 
-type Case = { caption: string; account?: Partial<Account>; busy?: boolean; loggingIn?: boolean; phase?: Op["phase"]; showGame?: boolean; preview?: "copied" | "started" };
+type Case = { caption: string; account?: Partial<Account>; busy?: boolean; loggingIn?: boolean; phase?: Op["phase"]; preview?: "copied" | "started" };
 const cases: Case[] = [
   { caption: "Готов, ничего не запущено" },
   { caption: "Battle.net открыт на этом аккаунте", account: { isCurrent: true } },
@@ -71,7 +71,7 @@ function RecordCase({ c }: { c: Case }) {
     <Shot caption={c.caption}>
       <ul className="cards cards--one">
         <AccountRecord account={a} loggingIn={!!c.loggingIn} phase={c.phase ?? null} busy={!!c.busy} launcherFound
-          showGameStart={c.showGame ?? true} autoRatings preview={c.preview}
+          autoRatings preview={c.preview}
           pickingRole={null} onPickRating={() => {}} onStart={() => {}} onDelete={() => {}} onGame={() => {}} />
       </ul>
     </Shot>

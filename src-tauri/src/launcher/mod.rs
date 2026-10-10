@@ -84,6 +84,7 @@ pub enum GameReadiness {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LauncherEvent {
+    GameLaunchStarted,
     GameLaunched,
     GameReadiness(GameReadiness),
     /// Logged in as the account with this ID (eight lowercase hex digits).

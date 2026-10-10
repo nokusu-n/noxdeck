@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
 import { join } from "node:path";
-import { A, B, C, record, startApp } from "./lib.mjs";
+import { spawn } from "node:child_process";
+import { once } from "node:events";
+import { A, B, C, APP, record, sleep, startApp } from "./lib.mjs";
 
 let app;
 afterEach(async () => { await app?.stop(); app = null; });
@@ -73,7 +75,15 @@ test("the chosen tab survives the tray and a real program restart", async () => 
   await h.click("tab-call_of_duty");
   await h.waitFor("empty-game-tab");
   await h.click("win-close");
-  await app.browser.execute(() => window.__TAURI_INTERNALS__.invoke("test_tray_click", { id: "open" }));
+  const reopen = spawn(APP, [], { env: app.env, stdio: "ignore", windowsHide: true });
+  assert.equal((await once(reopen, "exit"))[0], 0);
+  let handles = [];
+  for (let i = 0; i < 100 && !handles.length; i++) {
+    handles = await app.browser.getWindowHandles();
+    if (!handles.length) await sleep(50);
+  }
+  assert.equal(handles.length, 1);
+  await app.browser.switchToWindow(handles[0]);
   await h.waitFor("tab-call_of_duty");
   assert.equal(await h.el("tab-call_of_duty").getAttribute("aria-selected"), "true");
   await app.restart();

@@ -14,6 +14,18 @@ use std::time::{Duration, Instant};
 
 const STAND: Duration = Duration::from_millis(100);
 
+#[test]
+fn launch_started_requires_the_exact_product_token() {
+    let f = Fake::new();
+    let run = f.sim.new_run();
+    for line in ["LaunchBinary: uid=other binaryType=game", "LaunchBinary: uid=prometheus-extra binaryType=game", "LaunchBinary: notuid=prometheus binaryType=game"] { run.line(line); }
+    run.line("LaunchBinary: uid=prometheus binaryType=game");
+    let mut tail = LogTail::new(STAND);
+    let events = tail.poll(&f.paths.logs_dir(), Instant::now()).events;
+    assert_eq!(events.iter().filter(|event| event.event == E::GameLaunchStarted).count(), 1);
+    assert!(!events.iter().any(|event| event.event == E::GameLaunched));
+}
+
 /// Write a fixture as a main log, with unrelated lines mixed in between its lines.
 fn put_log(dir: &Path, name: &str, fixture_name: &str) {
     fs::create_dir_all(dir).unwrap();
@@ -155,7 +167,7 @@ fn empty_list_login_screen_counts_after_it_stood() {
 fn manual_login_with_credential_flicker_then_game_is_one_login_and_launch() {
     assert_eq!(
         events_of("manual-login-then-game.log"),
-        vec![logged_in("aaaa0002"), E::GameLaunched]
+        vec![logged_in("aaaa0002"), E::GameLaunchStarted, E::GameLaunched]
     );
 }
 
@@ -183,7 +195,7 @@ fn update_pending_is_just_a_login_but_a_launched_game_is_an_event() {
     );
     assert_eq!(
         events_of("hidden-start-game-launcher-stays.log"),
-        vec![logged_in("aaaa0001"), E::GameLaunched]
+        vec![logged_in("aaaa0001"), E::GameLaunchStarted, E::GameLaunched]
     );
 }
 

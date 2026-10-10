@@ -13,7 +13,7 @@ fn language_probe() {
     assert_eq!(state["lang"], expected);
     assert_eq!(state["settings"]["language"], value["language"]);
     assert_eq!(state["settings"]["afterStart"], "tray");
-    assert_eq!(state["settings"]["showGameStart"], true);
+    assert!(state["settings"].get("showGameStart").is_none());
     assert_eq!(state["settings"]["autostart"], false);
 }
 

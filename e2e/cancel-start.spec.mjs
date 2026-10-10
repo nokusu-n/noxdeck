@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
+import { join } from "node:path";
 import { A, record, sleep, startApp } from "./lib.mjs";
 
 let app;
@@ -13,6 +14,7 @@ test("a start ignores a double click, then Cancel clears the wait and allows ano
   await h.click(`game-${A.id}`);
   await h.waitFor("operation");
   await sleep(1100);
+  if (process.env.NOXDECK_CAPTURE_DIR) await app.browser.saveScreenshot(join(process.env.NOXDECK_CAPTURE_DIR, "cancel.png"));
   await h.click(`game-${A.id}`);
   await h.waitGone("operation");
   assert.equal(await h.text(`game-${A.id}`), "Overwatch");

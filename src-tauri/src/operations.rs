@@ -309,6 +309,7 @@ impl Core {
                 .ok_or(Refusal::UnknownAccount)?;
             email = a.email.clone().ok_or(Refusal::NoEmail)?;
             game_running = inner.game_running;
+            if a.game != crate::registry::Game::Overwatch { return Err(Refusal::GameUnsupported); }
             if game_running && !close_game {
                 return Err(Refusal::GameRunning);
             }
@@ -487,7 +488,7 @@ impl Core {
                 wait.end(WaitEnd::Event);
                 break pid;
             }
-            launch_seen |= self.events_since(launch_seq).contains(&LauncherEvent::GameLaunched);
+            launch_seen |= self.events_since(launch_seq).iter().any(|event| matches!(event, LauncherEvent::GameLaunchStarted | LauncherEvent::GameLaunched));
             let (running, wanted) = {
                 let inner = lock(&self.inner);
                 (inner.launcher_running, matches!(&inner.session, Session::LoggedIn(current) if current == id))

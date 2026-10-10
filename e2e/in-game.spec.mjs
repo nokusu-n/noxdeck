@@ -15,8 +15,9 @@ const state = () => app.browser.execute(async () => window.__TAURI_INTERNALS__.i
 
 async function assertMarked(a = A, label = "Overwatch") {
   await app.h.waitFor(`ingame-${a.id}`, { timeout: 2000 });
-  assert.equal(await app.h.text(`ingame-${a.id}`), label);
   await app.h.tick(async () => (await state()).operation === null, "game start is still finishing");
+  await app.h.tick(async () => (await app.h.text(`ingame-${a.id}`)) === label, "running button still shows Cancel");
+  assert.equal(await app.h.text(`ingame-${a.id}`), label);
   assert.equal(await app.h.el(`ingame-${a.id}`).isEnabled(), true);
   assert.equal(await app.h.el(`ingame-${a.id}`).getCSSProperty("color").then(p => p.value), "rgba(142,228,51,1)");
   assert.equal(await app.h.exists(`game-${a.id}`), false);
@@ -43,6 +44,7 @@ async function manualPlay() {
 test("US4.1 started account has a pressable running button; other accounts keep Start game", async () => {
   await startOnA();
   await assertMarked();
+  if (process.env.NOXDECK_CAPTURE_DIR) await app.browser.saveScreenshot(join(process.env.NOXDECK_CAPTURE_DIR, "playing-green.png"));
   assert.equal(await app.h.exists(`ingame-${B.id}`), false);
   assert.equal(await app.h.el(`game-${B.id}`).isEnabled(), true);
   assert.equal(await app.h.exists("game-dialog"), false);
@@ -73,10 +75,18 @@ test("US4 restarting the playing account asks and replaces its process on the sa
   });
 });
 
-test("US4.2 the launcher's own Play marks its logged-in account", async () => {
-  await manualPlay();
-  await assertMarked();
+test("US4.2 the launcher's own Play marks a non-Overwatch account without adding a game button", async () => {
+  app = await startApp({ ...options(), accounts: [record(A, { game: "call_of_duty" }), record(B)] });
+  app.startLauncherOutside();
+  await app.h.waitFor(`current-${A.id}`);
+  app.playInLauncher();
+  await app.h.tick(async () => (await state()).accounts.find(a => a.id === A.id).isInGame, "manual game's account was not marked");
+  assert.equal(await app.h.text(`state-${A.id}`), "In game");
+  assert.equal(await app.h.exists(`game-${A.id}`), false);
+  assert.equal(await app.h.exists(`ingame-${A.id}`), false);
   assert.equal(await app.h.exists(`current-${A.id}`), true);
+  await app.h.click(`game-settings-${A.id}`);
+  assert.equal(await app.h.el(`game-option-${A.id}-overwatch`).isEnabled(), false);
 });
 
 test("US4.3 closing and switching the launcher preserve the game's account", async () => {

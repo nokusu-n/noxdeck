@@ -100,3 +100,25 @@ fn a_game_closed_for_a_restart_stays_closed_after_cancel() {
     assert!(!core.state().game_running);
     assert_eq!(f.procs.calls().iter().filter(|c| *c == "stop_game").count(), 1);
 }
+
+#[test]
+fn tray_cancel_remains_available_when_the_starting_account_is_outside_the_five_recent_accounts() {
+    let f = seeded();
+    let mut accounts = vec![account_json(ID, Some("placeholder@example.com"), None, "ready")];
+    for index in 2..=6 {
+        let mut value: serde_json::Value = serde_json::from_str(&account_json(&format!("aaaa{index:04}"), Some("other@example.com"), None, "ready")).unwrap();
+        value["last_login_at"] = serde_json::json!("2026-10-11T10:00:00Z");
+        accounts.push(value.to_string());
+    }
+    f.seed_accounts(&accounts_file(&accounts));
+    let core = f.core();
+    core.start_launcher(ID).unwrap();
+    let menu = tray::menu(&core.state());
+    assert_eq!(menu.iter().filter(|item| item.id.starts_with("acc-")).count(), 5);
+    assert!(!menu.iter().any(|item| item.id == format!("acc-{ID}")));
+    assert!(menu.iter().any(|item| item.id == "cancel" && item.enabled));
+    std::thread::sleep(core.timing.cancel_guard);
+    tray::click(&core, "cancel");
+    wait_idle(&core);
+    assert_eq!(account(&core.state(), ID).last_outcome, None);
+}

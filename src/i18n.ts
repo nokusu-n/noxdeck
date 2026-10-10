@@ -5,6 +5,7 @@
 const gameName = "Overwatch";
 
 const en = {
+  r_game_unsupported: "Use Launcher for this account. Only Overwatch can be started here.", stateInGame: "In game",
   sortRole: "Sort by role rank", rankLowFirst: "Lowest rank first", rankHighFirst: "Highest rank first",
   gameTabs: "Games", allGames: "All", tabWow: "WoW", tabWowForever: "WoW: Forever", sortLabel: "Sort accounts",
   movedTo: "Moved to {game}", emptyGameTab: "No accounts for {game} yet", emptyGameHint: "Add the first account: it will get this game.",
@@ -118,6 +119,7 @@ const en = {
 };
 
 const ru: typeof en = {
+  r_game_unsupported: "Откройте этот аккаунт через Launcher. Здесь доступен запуск только Overwatch.", stateInGame: "В игре",
   sortRole: "Сортировка по рангу роли", rankLowFirst: "Сначала низкий ранг", rankHighFirst: "Сначала высокий ранг",
   gameTabs: "Игры", allGames: "Все", tabWow: "WoW", tabWowForever: "WoW: Forever", sortLabel: "Сортировка аккаунтов",
   movedTo: "Перенесён в {game}", emptyGameTab: "В {game} пока нет аккаунтов", emptyGameHint: "Добавьте первый аккаунт: он сразу получит эту игру.",
@@ -231,6 +233,7 @@ const ru: typeof en = {
 };
 
 const it: typeof en = {
+  r_game_unsupported: "Usa Launcher per questo account. Qui puoi avviare solo Overwatch.", stateInGame: "In gioco",
   sortRole: "Ordina per grado del ruolo", rankLowFirst: "Prima i gradi più bassi", rankHighFirst: "Prima i gradi più alti",
   gameTabs: "Giochi", allGames: "Tutti", tabWow: "WoW", tabWowForever: "WoW: Forever", sortLabel: "Ordina account",
   movedTo: "Spostato in {game}", emptyGameTab: "Nessun account per {game}", emptyGameHint: "Aggiungi il primo account: riceverà questo gioco.",
