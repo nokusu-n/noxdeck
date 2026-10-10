@@ -220,7 +220,7 @@ impl Core {
                     set_state(&mut inner, &id, LoginState::CodeWanted)
                 }
                 _ => {
-                    inner.outcomes.insert(id, "no_answer");
+                    inner.outcomes.insert(id, ("no_answer", Instant::now()));
                 }
             }
             self.save_registry(&inner);
@@ -312,7 +312,7 @@ impl Core {
         {
             let mut inner = lock(&self.inner);
             if let Some(outcome) = outcome {
-                inner.outcomes.insert(id, outcome);
+                inner.outcomes.insert(id, (outcome, Instant::now()));
             }
             self.save_registry(&inner);
         }

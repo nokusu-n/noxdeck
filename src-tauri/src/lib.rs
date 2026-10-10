@@ -22,7 +22,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex, MutexGuard};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 /// Every wait and interval of the core. Production values by default; tests use
 /// milliseconds.
@@ -238,7 +238,8 @@ pub(crate) struct Inner {
     pub seq: u64,
     pub events: Vec<(u64, LauncherEvent)>,
     pub operation: Option<Operation>,
-    pub outcomes: HashMap<String, &'static str>,
+    /// The note and when the operation finished; only success notes expire.
+    pub outcomes: HashMap<String, (&'static str, Instant)>,
     pub notice: bool,
     pub autostart: bool,
     pub ask: Option<Ask>,

@@ -53,6 +53,81 @@ fn assert_started(core: &Core, id: &str) {
 }
 
 #[test]
+fn game_started_expires_once_per_start_even_after_state_and_language_changes() {
+    let f = seeded();
+    login_on_start(&f, A);
+    game_on_command(&f, false);
+    let core = f.core();
+    core.start_game(A, false).unwrap();
+    wait_idle(&core);
+    let first_finished = Instant::now();
+    assert_started(&core, A);
+
+    std::thread::sleep(Duration::from_secs(1));
+    core.set_language(Some(noxdeck_lib::settings::Language::Ru));
+    assert_eq!(account(&core.state(), A).last_outcome, Some("game_started"));
+    f.procs.set_game(false);
+    core.tick();
+    login_on_start(&f, B);
+    core.start_game(B, false).unwrap();
+    wait_idle(&core);
+    let second_finished = Instant::now();
+
+    std::thread::sleep(Duration::from_millis(3100).saturating_sub(first_finished.elapsed()));
+    core.tick();
+    assert_eq!(account(&core.state(), A).last_outcome, None);
+    assert_eq!(account(&core.state(), B).last_outcome, Some("game_started"));
+    assert!(core.state().game_running, "expiring the note leaves the game alone");
+
+    f.procs.set_game(false);
+    std::thread::sleep(Duration::from_millis(3100).saturating_sub(second_finished.elapsed()));
+    core.tick();
+    core.set_language(Some(noxdeck_lib::settings::Language::En));
+    core.set_after_start(noxdeck_lib::settings::AfterStart::Stay);
+    for _ in 0..3 {
+        assert!(core.state().accounts.iter().all(|a| a.last_outcome.is_none()));
+        core.publish();
+    }
+    assert!(f.states.lock().unwrap().iter().any(|s| s.operation.is_none()
+        && s.accounts.iter().all(|a| a.last_outcome.is_none())));
+}
+
+#[test]
+fn unsuccessful_notes_stay_until_the_next_action() {
+    const C: &str = "cccc0003";
+    let f = seeded();
+    f.seed_accounts(&accounts_file(&[
+        account_json(A, Some("userA@example.com"), None, "ready"),
+        account_json(B, Some("userB@example.com"), None, "ready"),
+        account_json(C, Some("userC@example.com"), None, "ready"),
+    ]));
+    let core = f.core();
+    core.start_game(A, false).unwrap();
+    wait_idle(&core);
+    let sim = f.sim.clone();
+    f.procs.on_start(move || {
+        let run = sim.new_run();
+        run.login(B);
+        run.line("InstallState (prometheus): installed=1 playable=0");
+    });
+    core.start_game(B, false).unwrap();
+    wait_idle(&core);
+    login_on_start(&f, C);
+    core.start_game(C, false).unwrap();
+    wait_idle(&core);
+
+    std::thread::sleep(Duration::from_millis(3100));
+    core.tick();
+    let state = core.state();
+    assert_eq!(account(&state, A).last_outcome, Some("no_answer"));
+    assert_eq!(account(&state, B).last_outcome, Some("game_needs_update"));
+    assert_eq!(account(&state, C).last_outcome, Some("game_not_started"));
+    core.start_game(B, false).unwrap();
+    assert_eq!(account(&core.state(), B).last_outcome, None);
+    wait_idle(&core);
+}
+
+#[test]
 fn closed_launcher_starts_game_and_only_saved_names_change() {
     let f = seeded();
     let before = f.config_bytes();

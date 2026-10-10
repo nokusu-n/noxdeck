@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { Account, Role, State } from "../core";
 import { lang, phaseKey, t } from "../i18n";
 import { Icon, OverwatchMark } from "../ui/Icon";
@@ -48,15 +48,7 @@ function lookOf(a: Account, loggingIn: boolean, phase: Phase | null, started: bo
 
 export function AccountRecord({ account: a, loggingIn, phase, busy, launcherFound, showGameStart, showRatings, autoRatings, pickingRole, onPickRating, onStart, onDelete, onGame, preview }: Props) {
   const [copied, setCopied] = useState(preview === "copied");
-  const [started, setStarted] = useState(false);
-  useEffect(() => {
-    const show = a.lastOutcome === "game_started" && !loggingIn;
-    setStarted(show);
-    if (show && preview !== "started") {
-      const timer = setTimeout(() => setStarted(false), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [a.lastOutcome, loggingIn, preview]);
+  const started = a.lastOutcome === "game_started";
   const look = lookOf(a, loggingIn, phase, started);
 
   async function copyTag() {

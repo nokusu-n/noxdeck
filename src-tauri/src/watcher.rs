@@ -21,6 +21,9 @@ impl Core {
         let polled = tail.poll(&self.paths.logs_dir(), now);
         {
             let mut inner = lock(&self.inner);
+            inner.outcomes.retain(|_, (note, finished)| {
+                *note != "game_started" || now.saturating_duration_since(*finished) < Duration::from_secs(3)
+            });
             if let Ok(autostart) = autostart {
                 inner.autostart = autostart;
             }
@@ -84,7 +87,7 @@ impl Core {
             }
             LauncherEvent::LoggedIn { id } => {
                 inner.session = Session::LoggedIn(id.clone());
-                if inner.outcomes.get(&id) == Some(&"no_answer") {
+                if inner.outcomes.get(&id).is_some_and(|(note, _)| *note == "no_answer") {
                     inner.outcomes.remove(&id);
                 }
                 let tag = cache::battle_tag(&self.paths.cache_db(), &id);
@@ -147,7 +150,7 @@ impl Core {
                     .confirmed
                     .as_ref()
                     .is_some_and(|g| g.account_id == a.id),
-                last_outcome: inner.outcomes.get(&a.id).copied(),
+                last_outcome: inner.outcomes.get(&a.id).map(|(note, _)| *note),
             })
             .collect();
         match inner.settings.sort {
