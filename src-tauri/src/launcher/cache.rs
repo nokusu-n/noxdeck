@@ -5,6 +5,8 @@ use std::path::Path;
 
 fn query(db: &Path, id_lo: i64) -> rusqlite::Result<Option<String>> {
     let conn = Connection::open_with_flags(db, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
+    // The watcher will try again; a locked cache must not stall every core tick.
+    conn.busy_timeout(std::time::Duration::ZERO)?;
     let mut stmt =
         conn.prepare("select battle_tag from login_cache where account_id_lo = ?1 limit 1")?;
     let mut rows = stmt.query([id_lo])?;

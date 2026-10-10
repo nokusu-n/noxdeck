@@ -79,7 +79,7 @@ impl GameTracking {
         if self
             .candidate
             .as_ref()
-            .is_some_and(|(_, at)| now.duration_since(*at) > Duration::from_secs(30))
+            .is_some_and(|(_, at)| now.duration_since(*at) > Duration::from_secs(120))
         {
             self.candidate = None;
         }
@@ -113,11 +113,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn candidate_is_valid_at_30_seconds_and_dropped_after_30_seconds() {
+    fn candidate_covers_the_slow_game_bound_and_expires_after_it() {
         let now = Instant::now();
         let mut in_time = GameTracking::default();
         in_time.launched(Some("aaaa0001"), now);
-        in_time.tick(now + Duration::from_secs(30), &[77]);
+        in_time.tick(now + Duration::from_secs(120), &[77]);
         assert_eq!(
             in_time.confirmed,
             Some(InGame {
@@ -127,8 +127,8 @@ mod tests {
         );
         let mut late = GameTracking::default();
         late.launched(Some("aaaa0001"), now);
-        late.tick(now + Duration::from_secs(30) + Duration::from_nanos(1), &[]);
-        late.tick(now + Duration::from_secs(31), &[88]);
+        late.tick(now + Duration::from_secs(120) + Duration::from_nanos(1), &[]);
+        late.tick(now + Duration::from_secs(121), &[88]);
         assert_eq!(late.confirmed, None);
     }
 
@@ -137,10 +137,10 @@ mod tests {
         let now = Instant::now();
         let mut game = GameTracking::default();
         game.launched(Some("aaaa0001"), now);
-        game.tick(now + Duration::from_secs(31), &[77]);
+        game.tick(now + Duration::from_secs(121), &[77]);
         assert_eq!(game.confirmed, None);
-        game.launched(Some("aaaa0002"), now + Duration::from_secs(32));
-        game.tick(now + Duration::from_secs(32), &[88]);
+        game.launched(Some("aaaa0002"), now + Duration::from_secs(122));
+        game.tick(now + Duration::from_secs(122), &[88]);
         assert_eq!(game.confirmed.as_ref().unwrap().account_id, "aaaa0002");
     }
 }
