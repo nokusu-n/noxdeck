@@ -20,6 +20,7 @@ export type Refusal =
   | "game_change_blocked";
 export type Game = "overwatch" | "world_of_warcraft" | "world_of_warcraft_forever" | "call_of_duty" | "none";
 export const games: Exclude<Game, "none">[] = ["overwatch", "world_of_warcraft", "world_of_warcraft_forever", "call_of_duty"];
+export type Tab = "all" | Exclude<Game, "none">;
 
 export type LoginState = "ready" | "password_wanted" | "code_wanted";
 export type Sort = "last_login" | "battletag";
@@ -43,6 +44,8 @@ export type Account = {
 };
 
 export type State = {
+  tab: Tab;
+  visibleAccountIds: string[];
   syncing: boolean;
   version: string;
   launcher: "not_found" | "closed" | "login_screen" | "logged_in";
@@ -99,6 +102,7 @@ export const core = {
   startGame: (id: string, closeGame: boolean) => call("start_game", { id, closeGame }),
   deleteAccount: (id: string) => call("delete_account", { id }),
   setSort: (sort: Sort) => call("set_sort", { sort }),
+  setTab: (tab: Tab) => call("set_tab", { tab }),
   dismiss: (what: "rememberLogin" | "logoutWarning") => call("dismiss", { what }),
   acknowledgeNotice: () => call("acknowledge_notice"),
   clearAsk: () => call("clear_ask"),

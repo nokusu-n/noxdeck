@@ -220,6 +220,8 @@ pub enum Ask {
 #[derive(Serialize, Clone, Debug, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct State {
+    pub tab: settings::Tab,
+    pub visible_account_ids: Vec<String>,
     pub syncing: bool,
     pub version: String,
     pub launcher: LauncherKind,
@@ -242,6 +244,7 @@ pub(crate) enum Session {
 
 #[derive(Clone, Debug)]
 pub(crate) struct Operation {
+    pub add_game: registry::Game,
     pub kind: OpKind,
     pub account_id: Option<String>,
     pub phase: Phase,
@@ -392,7 +395,12 @@ impl Core {
     ) -> Arc<Core> {
         let (ratings_trigger, receiver) = std::sync::mpsc::sync_channel(1);
         let (mut registry, reset_a) = Registry::load(&paths.data.join("accounts.json"));
-        let (settings, reset_s) = Settings::load(&paths.data.join("settings.json"));
+        let (mut settings, reset_s) = Settings::load(&paths.data.join("settings.json"));
+        if settings.tab_version.as_deref() != Some(version) {
+            settings.tab = settings::Tab::All;
+            settings.tab_version = Some(version.to_owned());
+            let _ = settings.save(&paths.data.join("settings.json"));
+        }
         if registry.migrate(settings.show_game_start) { let _ = registry.save(&paths.data.join("accounts.json")); }
         let (game, reset_g) = GameTracking::load(&paths.data.join("state.json"));
         let journal = Arc::new(diagnostics::Journal::default());
@@ -545,6 +553,8 @@ mod commands {
     pub fn set_sort(core: Shared, sort: Sort) {
         core.set_sort(sort)
     }
+    #[tauri::command]
+    pub fn set_tab(core: Shared, tab: settings::Tab) { core.set_tab(tab); }
 
     #[tauri::command]
     pub fn dismiss(core: Shared, what: String) {
@@ -675,6 +685,7 @@ pub fn run() {
             commands::start_game,
             commands::delete_account,
             commands::set_sort,
+            commands::set_tab,
             commands::dismiss,
             commands::acknowledge_notice,
             commands::clear_ask,

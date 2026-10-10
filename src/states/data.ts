@@ -23,6 +23,7 @@ export const accounts: Account[] = [
 ];
 
 export const base: State = {
+  tab: "all", visibleAccountIds: accounts.map(a => a.id),
   syncing: false,
   version: "0.6.0",
   launcher: "logged_in",

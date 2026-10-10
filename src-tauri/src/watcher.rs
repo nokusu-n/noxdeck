@@ -201,6 +201,8 @@ impl Core {
             }),
         }
         State {
+            tab: inner.settings.tab,
+            visible_account_ids: accounts.iter().filter(|a| inner.settings.tab.includes(a.game)).map(|a| a.id.clone()).collect(),
             syncing: inner.syncing,
             version: self.version().to_owned(),
             launcher,

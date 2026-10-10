@@ -130,6 +130,7 @@ impl Core {
             self.cancel.store(false, Ordering::SeqCst);
             inner.ask = None;
             inner.operation = Some(Operation {
+                add_game: inner.settings.tab.game(),
                 kind,
                 account_id,
                 phase: Phase::Stopping,
@@ -665,6 +666,7 @@ impl Core {
             self.pause();
         }
         let mut inner = lock(&self.inner);
+        let game = inner.operation.as_ref().map_or(crate::registry::Game::None, |op| op.add_game);
         let now = Some(now_iso());
         let added = inner.registry.find(id).is_none();
         match inner.registry.find_mut(id) {
@@ -675,7 +677,7 @@ impl Core {
                 a.last_login_at = now;
             }
             None => inner.registry.accounts.push(Account {
-                game: crate::registry::Game::None,
+                game,
                 ratings: Default::default(),
                 id: id.to_owned(),
                 email,
@@ -722,8 +724,9 @@ impl Core {
         if inner.registry.find(&id).is_some() {
             return Err(Refusal::AlreadyListed);
         }
+        let game = inner.settings.tab.game();
         inner.registry.accounts.push(Account {
-            game: crate::registry::Game::None,
+            game,
             ratings: Default::default(),
             email: config::first_saved_name(&self.paths.config_file()),
             battletag: cache::battle_tag(&self.paths.cache_db(), &id),
@@ -780,6 +783,14 @@ impl Core {
     pub fn set_sort(&self, sort: Sort) {
         let mut inner = lock(&self.inner);
         inner.settings.sort = sort;
+        self.save_settings(&inner);
+        drop(inner);
+        self.publish();
+    }
+
+    pub fn set_tab(&self, tab: crate::settings::Tab) {
+        let mut inner = lock(&self.inner);
+        inner.settings.tab = tab;
         self.save_settings(&inner);
         drop(inner);
         self.publish();

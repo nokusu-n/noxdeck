@@ -75,6 +75,11 @@ body { margin: 0; overflow: hidden; background: var(--ground); color: var(--text
   .btn--icon:hover { background: var(--raised); color: var(--text); }
   .btn-del:hover { color: var(--bad-text); background: rgba(221, 0, 0, .14); }
   .c-tools { display: flex; align-items: center; }
+  .gamebar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 8px 16px; border-bottom: 1px solid var(--line); }
+  .game-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .game-tab { padding: 0 8px; font-size: 12px; }
+  .game-tab.is-on { background: var(--accent-soft); color: var(--accent-hi); }
+  .game-tab.is-empty { color: var(--text-3); }
   .game-picker { width: 300px; }
   .game-option { width: 100%; justify-content: flex-start; margin: 2px 0; }
   .game-option.is-on { background: var(--accent-soft); color: var(--accent-hi); }
@@ -94,7 +99,7 @@ body { margin: 0; overflow: hidden; background: var(--ground); color: var(--text
   .seg-b:focus-visible, .seg-b:has(input:focus-visible) { outline: 2px solid var(--accent-hi); outline-offset: 1px; }
 
   /* ---- account cards ---- */
-  .cards { margin: 0 auto; padding: 14px 16px 22px; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(284px, 1fr)); gap: 12px; max-width: 1280px; }
+  .cards { margin: 0 auto; padding: 14px 16px 22px; list-style: none; display: grid; grid-auto-rows: 1fr; grid-template-columns: repeat(auto-fill, minmax(284px, 1fr)); gap: 12px; max-width: 1280px; }
   .card { display: flex; flex-direction: column; gap: 10px; padding: 12px 12px 12px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; transition: border-color .15s ease-out; }
   .card:hover { border-color: var(--line-2); }
   .card.is-live { border-color: rgba(108, 219, 0, .45); }
@@ -143,7 +148,7 @@ body { margin: 0; overflow: hidden; background: var(--ground); color: var(--text
   .rt--off .rn--none { font-size: 15px; font-weight: 800; color: #4a4f5e; }
 
   /* actions: two equal controls; a lit one is a label, not a button */
-  .c-acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .c-acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: auto; }
   .c-acts .btn--act { width: 100%; height: 30px; padding: 0 8px; }
   .btn--wide { grid-column: 1 / -1; }
 

@@ -33,8 +33,23 @@ pub enum Language { Ru, En, It }
 
 fn enabled() -> bool { true }
 
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum Tab { #[default] All, Overwatch, WorldOfWarcraft, WorldOfWarcraftForever, CallOfDuty }
+impl Tab {
+    pub fn game(self) -> crate::registry::Game {
+        use crate::registry::Game;
+        match self { Self::All => Game::None, Self::Overwatch => Game::Overwatch, Self::WorldOfWarcraft => Game::WorldOfWarcraft, Self::WorldOfWarcraftForever => Game::WorldOfWarcraftForever, Self::CallOfDuty => Game::CallOfDuty }
+    }
+    pub fn includes(self, game: crate::registry::Game) -> bool { self == Self::All || self.game() == game }
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Settings {
+    #[serde(default)]
+    pub tab: Tab,
+    #[serde(default)]
+    pub tab_version: Option<String>,
     pub schema: u32,
     pub sort: Sort,
     pub dismissed: Dismissed,
@@ -57,6 +72,7 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Settings {
+            tab: Tab::All, tab_version: None,
             schema: 1, sort: Sort::LastLogin, dismissed: Dismissed::default(),
             after_start: AfterStart::Tray, show_game_start: true, language: None,
             close_launcher: true,

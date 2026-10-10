@@ -5,6 +5,8 @@
 const gameName = "Overwatch";
 
 const en = {
+  gameTabs: "Games", allGames: "All", tabWow: "WoW", tabWowForever: "WoW: Forever", sortLabel: "Sort accounts",
+  movedTo: "Moved to {game}", emptyGameTab: "No accounts for {game} yet", emptyGameHint: "Add the first account: it will get this game.",
   world_of_warcraft: "World of Warcraft", world_of_warcraft_forever: "World of Warcraft: Forever", call_of_duty: "Call of Duty",
   accountGame: "Account game", chooseGame: "Choose game", noGame: "No game", gameSettings: "Change this account's game",
   r_game_change_blocked: "The game cannot be changed while this account is playing or starting.",
@@ -118,6 +120,8 @@ const en = {
 };
 
 const ru: typeof en = {
+  gameTabs: "Игры", allGames: "Все", tabWow: "WoW", tabWowForever: "WoW: Forever", sortLabel: "Сортировка аккаунтов",
+  movedTo: "Перенесён в {game}", emptyGameTab: "В {game} пока нет аккаунтов", emptyGameHint: "Добавьте первый аккаунт: он сразу получит эту игру.",
   world_of_warcraft: "World of Warcraft", world_of_warcraft_forever: "World of Warcraft: Forever", call_of_duty: "Call of Duty",
   accountGame: "Игра аккаунта", chooseGame: "Выбрать игру", noGame: "Без игры", gameSettings: "Сменить игру аккаунта",
   r_game_change_blocked: "Нельзя сменить игру, пока аккаунт играет или запускается.",
@@ -231,6 +235,8 @@ const ru: typeof en = {
 };
 
 const it: typeof en = {
+  gameTabs: "Giochi", allGames: "Tutti", tabWow: "WoW", tabWowForever: "WoW: Forever", sortLabel: "Ordina account",
+  movedTo: "Spostato in {game}", emptyGameTab: "Nessun account per {game}", emptyGameHint: "Aggiungi il primo account: riceverà questo gioco.",
   world_of_warcraft: "World of Warcraft", world_of_warcraft_forever: "World of Warcraft: Forever", call_of_duty: "Call of Duty",
   accountGame: "Gioco dell'account", chooseGame: "Scegli gioco", noGame: "Nessun gioco", gameSettings: "Cambia il gioco di questo account",
   r_game_change_blocked: "Non puoi cambiare il gioco mentre questo account gioca o si avvia.",

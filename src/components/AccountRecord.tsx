@@ -69,7 +69,7 @@ export function AccountRecord({ account: a, loggingIn, phase, operationKind, onC
   const startBlocked = busy || !launcherFound || !a.email;
   const reason = !a.email ? t("startNoEmail") : busy ? t("startBusy") : undefined;
   const lastLogin = a.lastLoginAt ? `${t("lastLogin")}: ${new Date(a.lastLoginAt).toLocaleString(lang)}` : undefined;
-  const wide = showGameStart ? "" : " btn--wide";
+  const wide = showGameStart || a.game === "none" ? "" : " btn--wide";
   return (
     <li data-testid={`account-${a.id}`} className={`card card--${look.kind}${look.kind === "ok" ? " is-live" : ""}`}>
       <div className="c-top">
@@ -108,7 +108,7 @@ export function AccountRecord({ account: a, loggingIn, phase, operationKind, onC
         ) : (
           <button data-testid={`start-${a.id}`} className={`btn btn--act${wide}`} disabled={startBlocked} title={reason ?? t("startTip")} onClick={onStart}>{t("start")}</button>
         )}
-        {showGameStart && (loggingIn && operationKind === "game" ? (
+        {a.game === "none" ? <button data-testid={`choose-game-${a.id}`} className="btn btn--act" disabled={loggingIn || a.isInGame} aria-haspopup="menu" onClick={e => onPickGame?.(e.currentTarget)}>{t("chooseGame")}</button> : showGameStart && (loggingIn && operationKind === "game" ? (
           <button data-testid={`${a.isInGame ? "ingame" : "game"}-${a.id}`} className="btn btn--act" onClick={onCancel}>{t("cancel")}</button>
         ) : a.isInGame ? (
           <button data-testid={`ingame-${a.id}`} className="btn btn--act is-on" disabled={startBlocked} aria-current="true" title={reason ?? t("inGameTip")} onClick={onGame}><OverwatchMark />{t("startGame")}</button>

@@ -147,7 +147,7 @@ fn the_window_may_only_talk_to_the_core() {
     commands.sort_unstable();
     let mut permitted = vec!["open_repository", "set_rating", "set_show_ratings", "set_auto_ratings", "sync_ratings", "add_account", "cancel_operation", "save_current", "start_launcher", "start_game", "delete_account", "set_sort", "dismiss", "acknowledge_notice", "clear_ask", "set_autostart", "set_after_start", "set_show_game_start", "set_close_launcher", "set_language", "save_diagnostics"];
     permitted.sort_unstable();
-    permitted.extend(["set_hide_emails", "set_account_game"]);
+    permitted.extend(["set_hide_emails", "set_account_game", "set_tab"]);
     permitted.sort_unstable();
     assert_eq!(commands, permitted, "only the pinned core commands cross the boundary");
     let cap = fs::read_to_string(manifest().join("capabilities").join("default.json")).unwrap();

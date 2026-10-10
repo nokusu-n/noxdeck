@@ -4,9 +4,9 @@ import { SettingsScreen } from "./SettingsScreen";
 import { DeleteDialog, GameDialog, ReminderDialog } from "./Dialogs";
 import { Banner, EmptyState, OperationStatus, WaitPanel } from "./Notices";
 import { RatingPicker } from "./RatingPicker";
-import { GamePicker } from "./GamePicker";
+import { GamePicker, gameLabel } from "./GamePicker";
 import type { Game } from "../core";
-import { SettingsHead, Toolbar } from "./Toolbar";
+import { GameBar, SettingsHead, Toolbar } from "./Toolbar";
 import { TitleBar } from "./TitleBar";
 import type { core, RatingValue, Refusal, Result, Role, State } from "../core";
 import { Key, phaseKey, t } from "../i18n";
@@ -36,6 +36,8 @@ export function MainWindow({ state, api, controls, initial }: {
   const [settingsOpen, setSettingsOpen] = useState(initial?.settingsOpen ?? false);
   const [picking, setPicking] = useState<Picking | null>(null);
   const [gamePicking, setGamePicking] = useState<{ id: string; anchor: HTMLElement } | null>(null);
+  const [movedGame, setMovedGame] = useState<Game | null>(null);
+  useEffect(() => { if (movedGame === null) return; const timer = setTimeout(() => setMovedGame(null), 4000); return () => clearTimeout(timer); }, [movedGame]);
   const root = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -47,6 +49,8 @@ export function MainWindow({ state, api, controls, initial }: {
 
   const busy = state.operation !== null;
   const found = state.launcher !== "not_found";
+  const visibleAccounts = state.accounts.filter(a => state.visibleAccountIds.includes(a.id));
+  const addAccount = () => state.dismissed.rememberLogin ? run(api.addAccount) : setDialog({ kind: "remind" });
 
   // An unexpected error (not a Refusal) is shown as it is rather than swallowed.
   const say = (r: Refusal) => setMessage(`r_${r}`);
@@ -95,7 +99,9 @@ export function MainWindow({ state, api, controls, initial }: {
     if (!gamePicking) return;
     const id = gamePicking.id;
     setGamePicking(null);
-    await run(() => api.setAccountGame(id, game));
+    const result = await api.setAccountGame(id, game);
+    if (!result.ok) say(result.refusal);
+    else if (state.tab !== "all" && state.tab !== game) setMovedGame(game);
   }
   const sync = state.settings.showRatings && state.settings.autoRatings
     ? { busy: state.syncing, onClick: () => run(api.syncRatings) }
@@ -113,13 +119,11 @@ export function MainWindow({ state, api, controls, initial }: {
       {settingsOpen ? (
         <SettingsHead back={() => setSettingsOpen(false)} />
       ) : (
-        <Toolbar
-          sort={state.sort}
-          onSort={(sort) => api.setSort(sort)}
+        <><Toolbar
           addDisabled={busy || !found}
-          onAdd={() => (state.dismissed.rememberLogin ? run(api.addAccount) : setDialog({ kind: "remind" }))}
+          onAdd={addAccount}
           onSave={saveCurrent}
-        />
+        /><GameBar state={state} onTab={tab => { setPicking(null); setGamePicking(null); api.setTab(tab); }} onSort={sort => api.setSort(sort)} /></>
       )}
 
       <div className="body">
@@ -147,15 +151,18 @@ export function MainWindow({ state, api, controls, initial }: {
             />
           )}
           {message && <Banner tone={message === "saved" ? "ok" : "info"} testid="message">{t(message as Key) ?? message}</Banner>}
+          {movedGame !== null && <Banner tone="info" testid="game-moved">{t("movedTo").replace("{game}", gameLabel(movedGame))}</Banner>}
         </div>
 
         {settingsOpen ? (
           <SettingsScreen state={state} api={api} run={run} />
-        ) : state.accounts.length === 0 ? (
+        ) : visibleAccounts.length === 0 && state.tab !== "all" ? (
+          <div className="empty" data-testid="empty-game-tab"><b>{t("emptyGameTab").replace("{game}", gameLabel(state.tab))}</b><p>{t("emptyGameHint")}</p><button className="btn btn--primary" data-testid="empty-game-add" disabled={busy || !found} onClick={addAccount}>{t("addAccount")}</button></div>
+        ) : visibleAccounts.length === 0 ? (
           <EmptyState />
         ) : (
           <ul className="cards">
-            {state.accounts.map((a) => (
+            {visibleAccounts.map((a) => (
               <AccountRecord
                 key={a.id}
                 account={a}
