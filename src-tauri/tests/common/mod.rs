@@ -45,6 +45,7 @@ struct ProcState {
     game: bool,
     game_pids: Vec<u32>,
     deny_stop: bool,
+    stop_error: Option<ProcessError>,
     deny_game_stop: bool,
     calls: Vec<String>,
     queries: Vec<&'static str>,
@@ -78,6 +79,7 @@ impl RecordingProcesses {
     pub fn deny_game_stop(&self, v: bool) {
         self.s.lock().unwrap().deny_game_stop = v;
     }
+    pub fn fail_stop(&self, error: ProcessError) { self.s.lock().unwrap().stop_error = Some(error); }
     /// What the "launcher" does when it is started.
     pub fn on_start(&self, f: impl Fn() + Send + Sync + 'static) {
         self.s.lock().unwrap().on_start = Some(Arc::new(f));
@@ -133,6 +135,7 @@ impl Processes for RecordingProcesses {
         if s.deny_stop && s.running {
             return Err(ProcessError::AccessDenied);
         }
+        if let Some(error) = &s.stop_error { if s.running { return Err(error.clone()); } }
         s.running = false;
         Ok(())
     }

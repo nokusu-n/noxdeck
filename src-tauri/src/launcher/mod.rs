@@ -88,6 +88,7 @@ pub enum ProcessError {
     /// The process exists but this user may not stop it (the launcher is elevated).
     AccessDenied,
     System(i32),
+    TimedOut,
     Other(String),
 }
 

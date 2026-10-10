@@ -145,6 +145,28 @@ mod tests {
     use super::*;
 
     #[test]
+    fn failed_kills_of_lingering_helpers_succeed_when_the_list_becomes_empty() {
+        let mut snapshots = std::collections::VecDeque::from([vec![101, 102], vec![102], vec![]]);
+        let mut attempts = 0;
+        let result = stop_until_gone(Duration::from_millis(350), || snapshots.pop_front().unwrap_or_default(), |_| { attempts += 1; Err(87) }, |_| {});
+        assert_eq!(result, Ok(()));
+        assert_eq!(attempts, 3);
+    }
+
+    #[test]
+    fn only_access_refused_to_a_process_still_alive_at_the_bound_means_administrator() {
+        for (code, expected) in [(5, ProcessError::AccessDenied), (87, ProcessError::TimedOut)] {
+            let started = Instant::now();
+            let result = stop_until_gone(Duration::from_millis(30), || vec![101], |_| Err(code), |_| {});
+            assert_eq!(result, Err(expected));
+            assert!(started.elapsed() >= Duration::from_millis(30));
+        }
+        let mut snapshots = std::collections::VecDeque::from([vec![101, 102], vec![102], vec![102]]);
+        let result = stop_until_gone(Duration::from_millis(150), || snapshots.pop_front().unwrap_or_else(|| vec![102]), |pid| Err(if pid == 101 { 5 } else { 87 }), |_| {});
+        assert_eq!(result, Err(ProcessError::TimedOut), "a departed denied process is no evidence about a survivor");
+    }
+
+    #[test]
     fn window_passes_do_not_take_process_snapshots() {
         let dir = tempfile::tempdir().unwrap();
         let processes = RealProcesses::default();
@@ -339,26 +361,7 @@ impl Processes for RealProcesses {
     }
 
     fn stop_launcher(&self, install: &Path, timeout: Duration) -> Result<(), ProcessError> {
-        let deadline = Instant::now() + timeout;
-        loop {
-            let sys = snapshot();
-            let procs = inside(&sys, install);
-            if procs.is_empty() {
-                return Ok(());
-            }
-            if let Err(e) = kill_all(procs, |success, error_code| self.record(Step::StopAttempt { game: false, success, error_code })) {
-                // A process that vanished meanwhile makes `kill` fail too: look again.
-                if !inside(&snapshot(), install).is_empty() {
-                    return Err(e);
-                }
-            }
-            if Instant::now() >= deadline {
-                return Err(ProcessError::Other(
-                    "the launcher did not stop in time".into(),
-                ));
-            }
-            std::thread::sleep(Duration::from_millis(100));
-        }
+        stop_until_gone(timeout, || launcher_pids(install), kill, |step| self.record(step))
     }
 
     fn start_launcher(&self, install: &Path) -> Result<(), ProcessError> {
@@ -385,5 +388,29 @@ impl Processes for RealProcesses {
             std::thread::sleep(Duration::from_millis(100));
         }
         Ok(())
+    }
+}
+
+fn stop_until_gone(
+    timeout: Duration, mut pids: impl FnMut() -> Vec<u32>,
+    mut kill: impl FnMut(u32) -> Result<(), i32>, mut record: impl FnMut(Step),
+) -> Result<(), ProcessError> {
+    let deadline = Instant::now() + timeout;
+    let mut denied = std::collections::HashSet::new();
+    let mut count = None;
+    loop {
+        let alive = pids();
+        if count != Some(alive.len()) { record(Step::LauncherStopSnapshot { remaining: alive.len() }); count = Some(alive.len()); }
+        denied.retain(|pid| alive.contains(pid));
+        if alive.is_empty() { return Ok(()); }
+        if Instant::now() >= deadline {
+            return Err(if denied.is_empty() { ProcessError::TimedOut } else { ProcessError::AccessDenied });
+        }
+        for pid in alive {
+            let result = kill(pid);
+            record(Step::StopAttempt { game: false, success: result.is_ok(), error_code: result.as_ref().err().copied() });
+            if result == Err(5) { denied.insert(pid); }
+        }
+        std::thread::sleep(Duration::from_millis(100).min(deadline.saturating_duration_since(Instant::now())));
     }
 }

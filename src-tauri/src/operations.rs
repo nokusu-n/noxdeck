@@ -137,9 +137,9 @@ impl Core {
     }
 
     fn stop_for_restart(&self, install: &Path) -> Result<(), Refusal> {
-        if self.stop_launcher_journalled(install).is_err() {
+        if let Err(error) = self.stop_launcher_journalled(install) {
             self.end_operation();
-            return Err(Refusal::LauncherNotClosable);
+            return Err(match error { launcher::ProcessError::AccessDenied | launcher::ProcessError::System(5) => Refusal::LauncherNotClosable, _ => Refusal::LauncherCloseTimeout });
         }
         // Drain what the stopped launcher wrote last, so it is not taken for news.
         self.tick();
@@ -177,8 +177,9 @@ impl Core {
     fn stop_launcher_journalled(&self, install: &Path) -> Result<(), launcher::ProcessError> {
         self.journal.record(Step::Command(Command::StopLauncher));
         let mut wait = self.journal.wait(WaitFor::LauncherStopped, Some(self.timing.stop));
+        let started = Instant::now();
         let result = self.processes.stop_launcher(install, self.timing.stop);
-        wait.end(if result.is_ok() { WaitEnd::Event } else { WaitEnd::Failed });
+        wait.end(if result.is_ok() { WaitEnd::Event } else if started.elapsed() >= self.timing.stop { WaitEnd::Bound } else { WaitEnd::Failed });
         diagnostics::command_result(&self.journal, Command::StopLauncher, &result);
         result
     }

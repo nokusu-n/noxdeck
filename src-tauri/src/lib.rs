@@ -52,7 +52,7 @@ impl Default for Timing {
         Timing {
             poll: Duration::from_millis(500),
             stand: launcher::log::STAND,
-            stop: Duration::from_secs(10),
+            stop: Duration::from_secs(30),
             start_timeout: Duration::from_secs(60),
             gone_grace: Duration::from_secs(3),
             tag_wait: Duration::from_secs(10),
@@ -90,6 +90,7 @@ impl Timing {
         Timing {
             poll: ms("NOXDECK_POLL_MS", d.poll),
             stand: ms("NOXDECK_STAND_MS", d.stand),
+            stop: ms("NOXDECK_STOP_MS", d.stop),
             start_timeout: ms("NOXDECK_START_TIMEOUT_MS", d.start_timeout),
             gone_grace: ms("NOXDECK_GONE_GRACE_MS", d.gone_grace),
             game_timeout: ms("NOXDECK_GAME_TIMEOUT_MS", d.game_timeout),
@@ -111,6 +112,7 @@ pub enum Refusal {
     Busy,
     LauncherNotFound,
     LauncherNotClosable,
+    LauncherCloseTimeout,
     NoSavedLogin,
     AlreadyListed,
     NoEmail,

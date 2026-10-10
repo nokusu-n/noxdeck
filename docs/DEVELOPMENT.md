@@ -103,6 +103,7 @@ The program reads these to find things; the tests set them to point at stand-ins
 | `NOXDECK_LOCALE` | replacement Windows locale; a saved language still wins | Windows user locale |
 | `NOXDECK_OVERFAST_URL` | rating service base URL; automated runs use a local stub | `https://overfast-api.tekrop.fr` |
 | `NOXDECK_RATINGS_MS` | interval between refresh starts, including sleep, for tests | 1800000 |
+| `NOXDECK_STOP_MS` | bound for stopping all launcher processes | 30000 |
 | `NOXDECK_POLL_MS`, `NOXDECK_STAND_MS`, `NOXDECK_START_TIMEOUT_MS`, `NOXDECK_GONE_GRACE_MS` | timings, for the tests | 500, 5000, 60000, 3000 |
 | `NOXDECK_GAME_TIMEOUT_MS`, `NOXDECK_GAME_SETTLE_MS`, `NOXDECK_HIDE_INTERVAL_MS` | game wait, settling wait, window hiding interval, for the tests | 20000, 5000, 10 |
 

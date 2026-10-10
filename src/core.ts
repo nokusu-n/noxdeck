@@ -9,6 +9,7 @@ export type Refusal =
   | "busy"
   | "launcher_not_found"
   | "launcher_not_closable"
+  | "launcher_close_timeout"
   | "no_saved_login"
   | "already_listed"
   | "no_email"

@@ -47,6 +47,7 @@ pub enum Step {
     ConfigWritten { success: bool },
     CommandResult { command: Command, success: bool, error_code: Option<i32> },
     StopAttempt { game: bool, success: bool, error_code: Option<i32> },
+    LauncherStopSnapshot { remaining: usize },
     Window(Window),
 }
 struct Entry { wall: SystemTime, at: Instant, step: Step }
