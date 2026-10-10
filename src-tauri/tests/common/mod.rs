@@ -56,6 +56,7 @@ struct ProcState {
     on_start: Option<Arc<dyn Fn() + Send + Sync>>,
     on_launch: Option<Arc<dyn Fn() + Send + Sync>>,
     hidden: bool,
+    journal: Option<Arc<noxdeck_lib::diagnostics::Journal>>,
 }
 
 /// Records every call and lets the test decide what "runs".
@@ -117,6 +118,9 @@ impl RecordingProcesses {
 }
 
 impl Processes for RecordingProcesses {
+    fn set_journal(&self, journal: Arc<noxdeck_lib::diagnostics::Journal>) {
+        self.s.lock().unwrap().journal = Some(journal);
+    }
     fn snapshot(&self, install: Option<&Path>, _: &str) -> ProcessSnapshot {
         let mut s = self.s.lock().unwrap();
         s.queries.push("snapshot");
@@ -135,6 +139,9 @@ impl Processes for RecordingProcesses {
     }
     fn stop_launcher(&self, _: &Path, _: Duration) -> Result<(), ProcessError> {
         let mut s = self.s.lock().unwrap();
+        if let Some(journal) = &s.journal {
+            journal.record(noxdeck_lib::diagnostics::Step::LauncherStopProcesses { executables: [0, usize::from(s.running), 0] });
+        }
         if s.running {
             s.calls.push("stop_launcher".into());
         }

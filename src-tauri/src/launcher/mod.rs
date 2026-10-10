@@ -13,6 +13,15 @@ pub const LAUNCHER_EXE: &str = "Battle.net Launcher.exe";
 pub const CLIENT_EXE: &str = "Battle.net.exe";
 pub const GAME_LAUNCH_COMMAND: &str = "--exec=launch Pro";
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LauncherExecutable { Launcher, Client, Helper }
+impl LauncherExecutable {
+    pub const ALL: [Self; 3] = [Self::Launcher, Self::Client, Self::Helper];
+    pub fn file_name(self) -> &'static str {
+        match self { Self::Launcher => LAUNCHER_EXE, Self::Client => CLIENT_EXE, Self::Helper => "Battle.net Helper.exe" }
+    }
+}
+
 /// Where everything lives. The environment can move every location, which is how
 /// the tests point the program at a stand-in.
 #[derive(Clone, Debug)]

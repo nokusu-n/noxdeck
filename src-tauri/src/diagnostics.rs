@@ -48,6 +48,7 @@ pub enum Step {
     CommandResult { command: Command, success: bool, error_code: Option<i32> },
     StopAttempt { game: bool, success: bool, error_code: Option<i32> },
     LauncherStopSnapshot { remaining: usize },
+    LauncherStopProcesses { executables: [usize; 3] },
     Window(Window),
 }
 struct Entry { wall: SystemTime, at: Instant, step: Step }
@@ -110,6 +111,11 @@ fn step_text(step: Step) -> String {
         Step::OperationBegan { kind, account } => format!("Operation began: {kind:?}, {}", account_text(account)),
         Step::OperationEnded { kind, account, outcome } => format!("Operation ended: {kind:?}, {}, {outcome:?}", account_text(account)),
         Step::LauncherEvent { event, account, historic } => format!("Launcher event: {event:?}, {}, historic={historic}", account_text(account)),
+        Step::LauncherStopProcesses { executables } => {
+            let names: Vec<_> = crate::launcher::LauncherExecutable::ALL.into_iter().zip(executables)
+                .map(|(exe, count)| format!("{}={count}", exe.file_name())).collect();
+            format!("Launcher processes selected: count={}, {}", executables.iter().sum::<usize>(), names.join(", "))
+        }
         step => format!("{step:?}"),
     }
 }

@@ -1,9 +1,8 @@
-//! The real `Processes`: matches launcher processes by the directory their
-//! executable lives in, never by name, so a stand-in install cannot reach the
-//! real launcher.
+//! The real `Processes`: launcher executable names in this install's root or
+//! numeric version folder. A game inside the install is still only a game.
 
 use super::{
-    ProcessError, ProcessSnapshot, Processes, CLIENT_EXE, GAME_LAUNCH_COMMAND, LAUNCHER_EXE,
+    ProcessError, ProcessSnapshot, Processes, LauncherExecutable, CLIENT_EXE, GAME_LAUNCH_COMMAND, LAUNCHER_EXE,
 };
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
@@ -75,8 +74,20 @@ fn scoped_owner(current: u32, remembered: u32, allowed: &[u32]) -> bool {
 }
 
 fn scoped_executable(pid: u32, install: &Path, exe: impl FnOnce(u32) -> Option<PathBuf>) -> bool {
+    exe(pid).is_some_and(|path| launcher_executable(&path, install).is_some())
+}
+
+fn launcher_executable(path: &Path, install: &Path) -> Option<LauncherExecutable> {
     let dir = format!("{}\\", norm(install).trim_end_matches('\\'));
-    exe(pid).is_some_and(|path| norm(&path).starts_with(&dir))
+    let path = norm(path);
+    let parts: Vec<_> = path.strip_prefix(&dir)?.split('\\').collect();
+    let name = match parts.as_slice() {
+        [name] => *name,
+        [version, name] if version.strip_prefix("battle.net.").is_some_and(|build|
+            !build.is_empty() && build.bytes().all(|b| b.is_ascii_digit())) => *name,
+        _ => return None,
+    };
+    LauncherExecutable::ALL.into_iter().find(|exe| exe.file_name().eq_ignore_ascii_case(name))
 }
 
 type Hwnd = *mut std::ffi::c_void;
@@ -144,6 +155,52 @@ fn norm(p: &Path) -> String {
 mod tests {
     use super::*;
 
+    #[derive(serde::Deserialize)]
+    struct Layout { path: PathBuf, launcher: bool }
+    fn layout() -> Vec<Layout> {
+        serde_json::from_str(include_str!("../../tests/fixtures/launcher-process-layout.json")).unwrap()
+    }
+
+    #[test]
+    fn launcher_names_in_root_and_numeric_version_folders_are_all_found() {
+        let install = Path::new("C:/StandIn/Install");
+        for entry in layout() {
+            assert_eq!(launcher_executable(&entry.path, install).is_some(), entry.launcher, "{}", entry.path.display());
+            assert_eq!(scoped_executable(101, install, |_| Some(entry.path)), entry.launcher);
+        }
+    }
+
+    #[test]
+    fn nested_games_are_never_selected_stopped_or_hidden_as_the_launcher() {
+        let install = Path::new("C:/StandIn/Install");
+        let layout = layout();
+        let selected: Vec<_> = layout.iter().enumerate().filter_map(|(i, entry)|
+            scoped_executable(i as u32 + 100, install, |_| Some(entry.path.clone())).then_some(i as u32 + 100)
+        ).collect();
+        for (i, entry) in layout.iter().enumerate().filter(|(_, entry)| !entry.launcher) {
+            assert!(!selected.contains(&(i as u32 + 100)));
+            assert!(!scoped_owner(i as u32 + 100, i as u32 + 100, &selected), "game window was selected for hiding");
+            assert!(!scoped_executable(i as u32 + 100, install, |_| Some(entry.path.clone())), "last window ownership check must reject the game too");
+        }
+        let mut snapshots = std::collections::VecDeque::from([selected.clone(), vec![]]);
+        let mut stopped = Vec::new();
+        assert_eq!(stop_until_gone(Duration::from_millis(250), || snapshots.pop_front().unwrap_or_default(),
+            |pid| { stopped.push(pid); Ok(()) }, |_| {}), Ok(()));
+        assert_eq!(stopped, selected);
+        assert_eq!(stopped.len(), layout.iter().filter(|entry| entry.launcher).count());
+    }
+
+    #[test]
+    fn diagnostics_identify_selected_executable_names_and_counts_without_paths() {
+        let journal = Journal::default();
+        journal.record(Step::LauncherStopProcesses { executables: [1, 2, 3] });
+        let text = journal.text();
+        assert!(text.contains("count=6"));
+        for exe in LauncherExecutable::ALL { assert!(text.contains(exe.file_name())); }
+        assert!(!text.contains("StandIn"));
+        assert!(!text.contains("C:"));
+    }
+
     #[test]
     fn failed_kills_of_lingering_helpers_succeed_when_the_list_becomes_empty() {
         let mut snapshots = std::collections::VecDeque::from([vec![101, 102], vec![102], vec![]]);
@@ -201,7 +258,7 @@ mod tests {
     fn recycled_process_ids_are_checked_again_before_acting_on_a_window() {
         let dir = Path::new("C:\\StandIn\\Install");
         assert!(scoped_executable(101, dir, |_| Some(
-            dir.join("Launcher.exe")
+            dir.join(LAUNCHER_EXE)
         )));
         assert!(!scoped_executable(101, dir, |_| Some(
             Path::new("C:\\PrivateLauncher\\Launcher.exe").into()
@@ -245,10 +302,9 @@ fn snapshot() -> System {
 }
 
 fn inside<'a>(sys: &'a System, install: &Path) -> Vec<&'a sysinfo::Process> {
-    let dir = format!("{}\\", norm(install).trim_end_matches('\\'));
     sys.processes()
         .values()
-        .filter(|p| p.exe().map(|e| norm(e).starts_with(&dir)).unwrap_or(false))
+        .filter(|p| p.exe().is_some_and(|e| launcher_executable(e, install).is_some()))
         .collect()
 }
 
@@ -367,7 +423,22 @@ impl Processes for RealProcesses {
     }
 
     fn stop_launcher(&self, install: &Path, timeout: Duration) -> Result<(), ProcessError> {
-        stop_until_gone(timeout, || launcher_pids(install), kill, |step| self.record(step))
+        let mut previous = None;
+        stop_until_gone(timeout, || {
+            let sys = snapshot();
+            let matched = inside(&sys, install);
+            let mut executables = [0; 3];
+            for process in &matched {
+                if let Some(exe) = process.exe().and_then(|path| launcher_executable(path, install)) {
+                    executables[exe as usize] += 1;
+                }
+            }
+            if previous != Some(executables) {
+                self.record(Step::LauncherStopProcesses { executables });
+                previous = Some(executables);
+            }
+            matched.iter().map(|p| p.pid().as_u32()).collect()
+        }, kill, |step| self.record(step))
     }
 
     fn start_launcher(&self, install: &Path) -> Result<(), ProcessError> {
