@@ -198,6 +198,7 @@ async function checkLanguage(lang) {
     scenario: { accounts: known, login_screen: [], readiness: "playable", game_launch: "stays" },
   });
   let { h } = app;
+  await h.tick(async () => (await app.browser.getTitle()) === "Noxdeck", "window title not ready");
   assert.equal(await app.browser.getTitle(), "Noxdeck");
   const seen = new Set();
   const see = async (ids) => {
