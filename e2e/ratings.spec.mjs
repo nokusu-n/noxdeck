@@ -66,13 +66,13 @@ test("US1.6: missing BattleTag or email does not prevent a manual rating", async
   await pick("tank", "gold:3"); await pick("support", "silver:2", B.id);
   assert.equal(await shown("tank"), "Gold 3"); assert.equal(await shown("support", B.id), "Silver 2");
 });
-test("US1.7: hiding ratings keeps values and restoring shows them again", async () => {
+test("US1.7: changing away from Overwatch keeps stored ratings for changing back", async () => {
   await start(); await pick("tank", "gold:3");
-  await settings(); await app.h.click("set-show-ratings"); await app.h.click("settings-back");
+  await app.h.click(`game-settings-${A.id}`); await app.h.click(`game-option-${A.id}-none`);
   await app.h.waitGone(`ratings-${A.id}`);
-  await app.restart(); await app.h.waitFor(`account-${A.id}`);
+  await app.restart(); await app.h.waitFor(`choose-game-${A.id}`);
   assert.equal(await app.h.exists(`ratings-${A.id}`), false);
-  await settings(); await app.h.click("set-show-ratings"); await app.h.click("settings-back");
+  await app.h.click(`choose-game-${A.id}`); await app.h.click(`game-option-${A.id}-overwatch`);
   assert.equal(await shown("tank"), "Gold 3");
 });
 
@@ -92,15 +92,22 @@ async function refreshed(count = 1) {
 }
 async function sync() { const count = app.overfast.requests.length; await app.h.click("sync"); await refreshed(count + 1); }
 
-test("US2.1: settings show both rating switches on and explain the service", async () => {
+test("US2.1: settings show the auto-refresh switch on and explain the service", async () => {
   await autoStart(); await settings();
-  assert.equal(await app.h.el("set-show-ratings").isSelected(), true);
+  assert.equal(await app.h.exists("set-show-ratings"), false);
   assert.equal(await app.h.el("set-auto-ratings").isSelected(), true);
   assert.equal(await app.h.text("ratings-source-note"), "Ratings are taken from the OverFast service by the account's BattleTag");
 });
-test("US2.2: automatic refresh off makes no requests and has no sync button", async () => {
-  await autoStart({ settings: { auto_ratings:false }, env: { NOXDECK_RATINGS_MS: "100" } }); await sleep(250);
-  assert.equal(app.overfast.requests.length, 0); assert.equal(await app.h.exists("sync"), false);
+test("US2.2: with automatic refresh off the Overwatch button refreshes only Overwatch accounts once", async () => {
+  await autoStart({ settings: { auto_ratings:false }, env: { NOXDECK_RATINGS_MS: "100" },
+    accounts: [record(A), record(B, { game: "call_of_duty" })] }); await sleep(250);
+  assert.equal(app.overfast.requests.length, 0); assert.equal(await app.h.exists("sync"), true);
+  await sync();
+  assert.equal(app.overfast.requests.length, 1);
+  assert.equal(app.overfast.requests[0].path, "/players/Alpha-1111/summary");
+  assert.equal(await shown("tank"), "Gold 3");
+  await sleep(250); assert.equal(app.overfast.requests.length, 1);
+  await app.h.click("tab-all"); assert.equal(await app.h.exists("sync"), false);
 });
 test("US2.3: enabling automatic refresh starts it immediately and shows sync", async () => {
   await autoStart({ settings: { auto_ratings:false } }); await enable(); await refreshed();
@@ -125,7 +132,7 @@ test("US2.6: a manual rating has no sync mark", async () => {
 });
 test("US2.7: sync indicates work and disables a second refresh", async () => {
   await autoStart({ settings: { auto_ratings:false } }); app.overfast.set(A.tag,{ body:body(), delay:600 }); await enable();
-  assert.equal(await app.h.el("sync").isEnabled(), false); assert.equal(await app.h.text("sync"), "Refreshing ratings…");
+  assert.equal(await app.h.el("sync").isEnabled(), false); assert.equal(await app.h.el("sync").getAttribute("aria-label"), "Refreshing ratings…");
   await refreshed(); assert.equal(await app.h.el("sync").isEnabled(), true);
 });
 test("US2.8: an unavailable or private account keeps its ratings without an error", async () => {
@@ -146,9 +153,9 @@ test("US2.10: the timer refreshes with the window closed in the tray", async () 
   for(let n=0;n<60 && app.overfast.requests.length===before;n++) await sleep(100);
   assert.ok(app.overfast.requests.length>before,"tray timer did not refresh");
 });
-test("US2.11: hidden ratings prevent requests even with auto on", async () => {
-  await autoStart({ settings:{auto_ratings:true,show_ratings:false}, env:{NOXDECK_RATINGS_MS:"100"} }); await sleep(250);
-  assert.equal(app.overfast.requests.length,0); assert.equal(await app.h.exists("sync"),false);
+test("US2.11: a non-Overwatch account never sends automatic rating requests", async () => {
+  await autoStart({ accounts: [record(A, {game:"none"})], settings:{auto_ratings:true}, env:{NOXDECK_RATINGS_MS:"100"} }); await sleep(250);
+  assert.equal(app.overfast.requests.length,0); assert.equal(await app.h.exists("sync"),true);
 });
 test("US3.1: the service can replace a manual rank with a lower rank", async () => {
   await autoStart({ settings: { auto_ratings:false }, accounts:[record(A,{ratings:manual})] }); await enable(); await refreshed();

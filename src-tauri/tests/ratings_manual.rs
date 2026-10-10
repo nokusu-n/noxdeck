@@ -24,7 +24,7 @@ fn old_accounts_load_without_ratings_and_manual_values_round_trip() {
     core.set_rating(ID, Role::Support, Some(value("champion", Some(1)))).unwrap();
     let (stored, reset) = Registry::load(&f.paths.data.join("accounts.json"));
     assert!(!reset);
-    assert_eq!(stored.schema, 1);
+    assert_eq!(stored.schema, 2);
     let ratings = serde_json::to_value(&stored.accounts[0]).unwrap()["ratings"].clone();
     assert_eq!(ratings["tank"], json!({"rank":"gold","division":3,"source":"manual"}));
     assert_eq!(ratings["damage"], json!({"rank":"placement","source":"manual"}));

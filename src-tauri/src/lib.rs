@@ -200,7 +200,6 @@ pub struct SettingsView {
     pub hide_emails: bool,
     pub close_launcher: bool,
     pub auto_ratings: bool,
-    pub show_ratings: bool,
     pub autostart: bool,
     pub after_start: AfterStart,
     pub show_game_start: bool,
@@ -311,17 +310,6 @@ impl Core {
     pub fn open_repository(&self) -> Result<(), Refusal> {
         self.shell.open_url("https://github.com/nokusu-n/noxdeck").map_err(|_| Refusal::RepositoryOpenFailed)
     }
-    pub fn set_show_ratings(&self, value: bool) {
-        let enabled;
-        {
-            let mut inner = lock(&self.inner);
-            enabled = value && !inner.settings.show_ratings;
-            inner.settings.show_ratings = value;
-            self.save_settings(&inner);
-        }
-        self.publish();
-        if enabled { self.sync_ratings(); }
-    }
     pub fn set_rating(&self, id: &str, role: ratings::Role, value: Option<ratings::RatingValue>) -> Result<(), Refusal> {
         if value.as_ref().is_some_and(|v| !v.valid()) { return Err(Refusal::InvalidRating); }
         {
@@ -353,14 +341,6 @@ impl Core {
         {
             let mut inner = lock(&self.inner);
             inner.settings.close_launcher = value;
-            self.save_settings(&inner);
-        }
-        self.publish();
-    }
-    pub fn set_show_game_start(&self, value: bool) {
-        {
-            let mut inner = lock(&self.inner);
-            inner.settings.show_game_start = value;
             self.save_settings(&inner);
         }
         self.publish();
@@ -402,7 +382,10 @@ impl Core {
             settings.tab_version = Some(version.to_owned());
             let _ = settings.save(&paths.data.join("settings.json"));
         }
-        if registry.migrate(settings.show_game_start) { let _ = registry.save(&paths.data.join("accounts.json")); }
+        if registry.migrate(settings.legacy_show_game_start.unwrap_or(true)) && registry.save(&paths.data.join("accounts.json")).is_ok() {
+            settings.legacy_show_game_start = None;
+            let _ = settings.save(&paths.data.join("settings.json"));
+        }
         let (game, reset_g) = GameTracking::load(&paths.data.join("state.json"));
         let journal = Arc::new(diagnostics::Journal::default());
         journal.settings(&settings, shell.autostart().unwrap_or(false));
@@ -447,7 +430,7 @@ impl Core {
         // The first poll reads what the launcher logged before we started watching.
         core.tick();
         ratings::spawn(&core, ratings, receiver);
-        core.sync_ratings();
+        core.refresh_ratings_automatically();
         core
     }
 
@@ -581,14 +564,6 @@ mod commands {
         core.set_close_launcher(value);
     }
     #[tauri::command]
-    pub fn set_show_game_start(core: Shared, value: bool) {
-        core.set_show_game_start(value);
-    }
-    #[tauri::command]
-    pub fn set_show_ratings(core: Shared, value: bool) {
-        core.set_show_ratings(value);
-    }
-    #[tauri::command]
     pub fn set_auto_ratings(core: Shared, value: bool) {
         core.set_auto_ratings(value);
     }
@@ -691,9 +666,7 @@ pub fn run() {
             commands::acknowledge_notice,
             commands::clear_ask,
             commands::set_after_start,
-            commands::set_show_game_start,
             commands::set_close_launcher,
-            commands::set_show_ratings,
             commands::set_auto_ratings,
             commands::sync_ratings,
             commands::set_language,

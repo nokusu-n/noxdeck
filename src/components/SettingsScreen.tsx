@@ -4,7 +4,7 @@ import { t } from "../i18n";
 import { Icon } from "../ui/Icon";
 import { Banner } from "./Notices";
 
-type Api = Pick<typeof core, "setAutostart" | "setAfterStart" | "setShowGameStart" | "setCloseLauncher" | "setShowRatings" | "setAutoRatings" | "setLanguage" | "openRepository" | "saveDiagnostics" | "setHideEmails">;
+type Api = Pick<typeof core, "setAutostart" | "setAfterStart" | "setCloseLauncher" | "setAutoRatings" | "setLanguage" | "openRepository" | "saveDiagnostics" | "setHideEmails">;
 
 function Switch({ testid, label, note, noteTestid, checked, onChange }: {
   testid: string; label: string; note?: string; noteTestid?: string; checked: boolean; onChange: (value: boolean) => void;
@@ -83,9 +83,7 @@ export function SettingsScreen({ state, api, run }: {
         </div>
       </Group>
       <Group title={t("sectionOverwatch")}>
-        <Switch testid="set-show-game" label={t("showGame")} checked={s.showGameStart} onChange={(v) => run(() => api.setShowGameStart(v))} />
         <Switch testid="set-close-launcher" label={t("closeLauncher")} checked={s.closeLauncher} onChange={(v) => run(() => api.setCloseLauncher(v))} />
-        <Switch testid="set-show-ratings" label={t("showRatings")} checked={s.showRatings} onChange={(v) => run(() => api.setShowRatings(v))} />
         <Switch testid="set-auto-ratings" label={t("autoRatings")} note={t("ratingsSourceNote")} noteTestid="ratings-source-note" checked={s.autoRatings} onChange={(v) => run(() => api.setAutoRatings(v))} />
       </Group>
       <div className="set-row set-row--stack">

@@ -44,24 +44,12 @@ function Cell({ account, role, autoRatings, open, onOpen }: {
   );
 }
 
-/** Three role cells in a row. With ratings hidden in Settings the row keeps its place and prints a dash. */
-export function Ratings({ account, shown, autoRatings, openRole, onOpen }: {
-  account: Account; shown: boolean; autoRatings: boolean; openRole: Role | null;
+/** Three role cells on Overwatch accounts. Stored ranks survive a change of game. */
+export function Ratings({ account, autoRatings, openRole, onOpen }: {
+  account: Account; autoRatings: boolean; openRole: Role | null;
   onOpen: (role: Role, anchor: HTMLElement) => void;
 }) {
-  if (!shown) {
-    return (
-      <div data-testid={`ratings-off-${account.id}`} className="c-rates">
-        {roles.map((role) => (
-          <span key={role} className="rt rt--off" title={`${t(role)}: ${t("ratingsOff")}`}>
-            <img className="rt-role" src={roleMark[role]} alt="" />
-            <span className="rt-v"><span className="rtx"><span className="rn rn--none">{t("none")}</span></span></span>
-            <span className="sr-only">{t(role)}</span>
-          </span>
-        ))}
-      </div>
-    );
-  }
+  if (account.game !== "overwatch") return null;
   return (
     <div data-testid={`ratings-${account.id}`} className="c-rates">
       {roles.map((role) => <Cell key={role} account={account} role={role} autoRatings={autoRatings} open={openRole === role} onOpen={onOpen} />)}

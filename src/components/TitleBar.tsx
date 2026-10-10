@@ -5,10 +5,8 @@ import type { WindowControls } from "../window";
 import mark from "../assets/noxdeck-mark.png";
 
 /** The window's own title bar: brand, the rating sync, settings, then the three window controls. */
-export function TitleBar({ version, sync, settingsOpen, onSettings, controls }: {
+export function TitleBar({ version, settingsOpen, onSettings, controls }: {
   version: string;
-  /** Present only while the ratings function is on. */
-  sync: { busy: boolean; onClick: () => void } | null;
   settingsOpen: boolean;
   onSettings: () => void;
   controls: WindowControls;
@@ -23,12 +21,6 @@ export function TitleBar({ version, sync, settingsOpen, onSettings, controls }: 
         <span className="tb-ver" data-testid="version">{version}</span>
       </div>
       <div className="tb-gap" data-tauri-drag-region />
-      {sync && (
-        <button data-testid="sync" className="tb-sync" disabled={sync.busy} aria-busy={sync.busy} title={t("syncTip")} onClick={sync.onClick}>
-          <Icon name="i-refresh" size={15} spin={sync.busy} />
-          <span>{t(sync.busy ? "syncing" : "syncRatings")}</span>
-        </button>
-      )}
       <button data-testid="settings-open" className="tb-btn" aria-pressed={settingsOpen} title={t("settings")} onClick={onSettings}>
         <Icon name="i-gear" size={17} />
         <span className="sr-only">{t("settings")}</span>

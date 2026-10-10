@@ -11,7 +11,12 @@ const BODY: &str = r#"{"competitive":{"pc":{"tank":{"division":"gold","tier":3}}
 fn setup(show: bool, auto: bool) -> (Fake, Stub) {
     let f = Fake::new();
     f.seed_accounts(&accounts_file(&[account_json(A, Some("placeholder@example.com"), Some(TAG), "ready"), account_json(B, None, None, "ready")]));
-    Settings { show_ratings: show, auto_ratings: auto, ..Settings::default() }.save(&f.paths.data.join("settings.json")).unwrap();
+    Settings { auto_ratings: auto, ..Settings::default() }.save(&f.paths.data.join("settings.json")).unwrap();
+    if !show {
+        let mut registry = noxdeck_lib::registry::Registry::load(&f.paths.data.join("accounts.json")).0;
+        registry.migrate(true); for a in &mut registry.accounts { a.game = noxdeck_lib::registry::Game::None; }
+        registry.save(&f.paths.data.join("accounts.json")).unwrap();
+    }
     let stub = Stub::new(); stub.set(TAG, Reply::json(BODY)); (f, stub)
 }
 fn core(f: &Fake, stub: &Stub, interval: Duration) -> Arc<Core> {
@@ -26,12 +31,14 @@ fn until(cond: impl Fn() -> bool) {
 fn idle(core: &Core, stub: &Stub, count: usize) { until(|| stub.count() >= count && !core.state().syncing); }
 
 #[test]
-fn both_settings_gate_startup_manual_and_timer_requests() {
+fn startup_and_timer_need_auto_and_overwatch_but_manual_ignores_auto() {
     assert!(Settings::default().auto_ratings);
     for (show, auto) in [(false,false),(false,true),(true,false)] {
         let (f, stub) = setup(show, auto); let core = core(&f,&stub,Duration::from_millis(20));
-        core.sync_ratings(); thread::sleep(Duration::from_millis(100));
-        assert_eq!(stub.count(), 0); assert!(!core.state().syncing);
+        thread::sleep(Duration::from_millis(100));
+        assert_eq!(stub.count(), 0);
+        core.sync_ratings();
+        if show { idle(&core, &stub, 1); } else { thread::sleep(Duration::from_millis(40)); assert_eq!(stub.count(), 0); }
     }
 }
 
@@ -47,17 +54,16 @@ fn startup_and_manual_triggers_skip_missing_tags_and_publish_each_answer() {
 }
 
 #[test]
-fn enabling_either_setting_triggers_and_persists_without_clearing_ratings() {
+fn enabling_auto_triggers_and_persists_without_clearing_ratings() {
     let (f,stub) = setup(true,false); let core = core(&f,&stub,Duration::from_secs(1800));
     core.set_auto_ratings(true); idle(&core,&stub,1);
-    let before = core.state().accounts;
-    core.set_show_ratings(false); core.sync_ratings();
-    assert_eq!(core.state().accounts,before);
-    core.set_show_ratings(true); idle(&core,&stub,2);
+    let before = account(&core.state(), A).ratings.clone();
+    core.set_account_game(A, noxdeck_lib::registry::Game::None).unwrap(); core.sync_ratings();
+    until(|| !core.state().syncing); assert_eq!(stub.count(),1);
+    core.set_account_game(A, noxdeck_lib::registry::Game::Overwatch).unwrap(); idle(&core,&stub,2);
     core.set_auto_ratings(false);
-    assert_eq!(core.state().accounts,before);
-    let stored = Settings::load(&f.paths.data.join("settings.json")).0;
-    assert!(!stored.auto_ratings); assert!(stored.show_ratings);
+    assert_eq!(account(&core.state(), A).ratings, before);
+    assert!(!Settings::load(&f.paths.data.join("settings.json")).0.auto_ratings);
     thread::sleep(Duration::from_millis(30)); assert_eq!(stub.count(),2);
 }
 
@@ -106,7 +112,7 @@ fn switching_off_drops_inflight_answers_and_stops_remaining_requests() {
         stub.set(TAG, Reply { delay:Duration::from_millis(60), ..Reply::json(BODY) });
         let core = core(&f,&stub,Duration::from_secs(1800));
         core.set_auto_ratings(true); until(|| stub.count()==1);
-        if hide { core.set_show_ratings(false); } else { core.set_auto_ratings(false); }
+        if hide { core.set_account_game(A, noxdeck_lib::registry::Game::None).unwrap(); } else { core.set_auto_ratings(false); }
         let before = core.state().accounts; idle(&core,&stub,1);
         assert_eq!(core.state().accounts,before);
     }
@@ -127,6 +133,7 @@ fn slow_or_unanswered_requests_leave_the_core_usable_and_do_not_delay_drop() {
 const NEW_ID: &str = "aaaa0003";
 const NEW_TAG: &str = "NewExample#34567";
 fn create_account(core: &Arc<Core>, f: &Fake, save: bool, tag: Option<&str>) {
+    core.set_tab(noxdeck_lib::settings::Tab::Overwatch);
     if let Some(tag) = tag { f.sim.cache_row(NEW_ID, tag); }
     if save {
         f.sim.set_list("new-placeholder@example.com");
@@ -169,8 +176,8 @@ fn added_account_is_picked_up_once_after_the_running_request() { immediate_refre
 fn saved_account_is_picked_up_once_after_the_running_request() { immediate_refresh(true, true); }
 
 #[test]
-fn new_account_refresh_requires_both_settings_and_a_tag() {
-    for save in [false, true] { for (show, auto, tag) in [(false,true,Some(NEW_TAG)),(true,false,Some(NEW_TAG)),(true,true,None)] {
+fn new_account_refresh_requires_auto_and_a_tag() {
+    for save in [false, true] { for (show, auto, tag) in [(true,false,Some(NEW_TAG)),(true,true,None)] {
         let (f, stub) = setup(show, auto); stub.set(NEW_TAG, Reply::json(BODY));
         let core = core(&f, &stub, Duration::from_secs(1800));
         if show && auto { idle(&core, &stub, 1); }

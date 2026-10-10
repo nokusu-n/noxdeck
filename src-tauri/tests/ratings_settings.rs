@@ -24,16 +24,9 @@ fn missing_auto_field_loads_on_but_explicit_false_stays_false() {
 }
 
 #[test]
-fn show_ratings_defaults_on_for_stage_three_files_and_round_trips() {
+fn the_old_rating_visibility_setting_is_discarded() {
     let f = Fake::new();
     std::fs::write(f.paths.data.join("settings.json"), r#"{"schema":1,"sort":"last_login","dismissed":{"remember_login":false,"logout_warning":false},"after_start":"stay","show_game_start":true,"language":"en"}"#).unwrap();
-    assert!(Settings::default().show_ratings);
-    let core = f.core();
-    assert!(core.state().settings.show_ratings);
-    core.set_show_ratings(false);
-    assert!(!core.state().settings.show_ratings);
-    assert!(!Settings::load(&f.paths.data.join("settings.json")).0.show_ratings);
-    assert!(!f.core().state().settings.show_ratings);
-    core.set_show_ratings(true);
-    assert!(f.core().state().settings.show_ratings);
+    let settings = Settings::load(&f.paths.data.join("settings.json")).0;
+    assert!(serde_json::to_value(settings).unwrap().get("show_ratings").is_none());
 }

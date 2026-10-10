@@ -4,7 +4,8 @@ use crate::{lock, Core, Inner};
 use std::{sync::{Arc, mpsc::{Receiver, RecvTimeoutError}}, time::{Duration, SystemTime}};
 pub mod overfast;
 
-pub(crate) enum Refresh { All, NewAccounts }
+#[derive(PartialEq)]
+pub(crate) enum Refresh { Manual, Automatic, NewAccounts }
 
 pub const RANKS: [&str; 9] = ["bronze", "silver", "gold", "platinum", "emerald", "diamond", "master", "grandmaster", "champion"];
 
@@ -58,14 +59,15 @@ impl Ratings {
 
 impl Core {
     pub fn apply_rating_report(&self, id: &str, report: [Option<RatingValue>; 3]) {
-        self.apply_report(id, report, None);
+        self.apply_report(id, report, None, false);
     }
 
-    fn apply_report(&self, id: &str, report: [Option<RatingValue>; 3], requested_tag: Option<&str>) {
+    fn apply_report(&self, id: &str, report: [Option<RatingValue>; 3], requested_tag: Option<&str>, automatic: bool) {
         {
             let mut inner = lock(&self.inner);
-            if requested_tag.is_some() && !(inner.settings.auto_ratings && inner.settings.show_ratings) { return; }
+            if automatic && !inner.settings.auto_ratings { return; }
             let Some(account) = inner.registry.find_mut(id) else { return; };
+            if account.game != crate::registry::Game::Overwatch { return; }
             if requested_tag.is_some() && account.battletag.as_deref() != requested_tag { return; }
             let mut changed = false;
             for (role, value) in [Role::Tank, Role::Damage, Role::Support].into_iter().zip(report) {
@@ -88,24 +90,28 @@ impl Core {
             self.save_settings(&inner);
         }
         self.publish();
-        if enabled { self.sync_ratings(); }
+        if enabled { self.refresh_ratings_automatically(); }
     }
 
     pub fn sync_ratings(&self) {
+        self.start_ratings(true);
+    }
+    pub(crate) fn refresh_ratings_automatically(&self) { self.start_ratings(false); }
+    fn start_ratings(&self, manual: bool) {
         {
             let mut inner = lock(&self.inner);
-            if inner.syncing || !(inner.settings.show_ratings && inner.settings.auto_ratings) { return; }
+            if inner.syncing || (!manual && !inner.settings.auto_ratings) { return; }
             inner.syncing = true;
             inner.ratings_last = Some(SystemTime::now());
         }
         self.publish();
-        let _ = self.ratings_trigger.try_send(Refresh::All);
+        let _ = self.ratings_trigger.try_send(if manual { Refresh::Manual } else { Refresh::Automatic });
     }
 
     /// Queue under the insertion lock so a full pass cannot see the record first.
     pub(crate) fn refresh_added_account(&self, inner: &mut Inner, id: &str) {
-        if !(inner.settings.show_ratings && inner.settings.auto_ratings)
-            || !inner.registry.find(id).is_some_and(|a| a.battletag.is_some()) { return; }
+        if !inner.settings.auto_ratings
+            || !inner.registry.find(id).is_some_and(|a| a.game == crate::registry::Game::Overwatch && a.battletag.is_some()) { return; }
         if !inner.ratings_pending.iter().any(|pending| pending == id) {
             inner.ratings_pending.push(id.to_owned());
         }
@@ -130,16 +136,20 @@ pub(crate) fn spawn(core: &Arc<Core>, client: overfast::Client, receiver: Receiv
             Err(RecvTimeoutError::Timeout) => {
                 let Some(core) = weak.upgrade() else { break; };
                 let should_run = due(lock(&core.inner).ratings_last, SystemTime::now(), core.timing.ratings_interval);
-                if should_run { core.sync_ratings(); }
+                if should_run { core.refresh_ratings_automatically(); }
             }
             Ok(refresh) => {
                 let Some(core) = weak.upgrade() else { break; };
-                let mut ids: Vec<_> = match refresh {
-                    Refresh::All => core.state().accounts.into_iter().map(|a| a.id).collect(),
-                    Refresh::NewAccounts => std::mem::take(&mut lock(&core.inner).ratings_pending),
+                let mut automatic = refresh != Refresh::Manual;
+                let mut ids: Vec<_> = {
+                    let mut inner = lock(&core.inner);
+                    let ids: Vec<_> = match refresh {
+                        Refresh::Manual | Refresh::Automatic => inner.registry.accounts.iter().filter(|a| a.game == crate::registry::Game::Overwatch).map(|a| a.id.clone()).collect(),
+                        Refresh::NewAccounts => std::mem::take(&mut inner.ratings_pending),
+                    };
+                    inner.ratings_pending.retain(|id| !ids.contains(id));
+                    ids
                 };
-                // Records inserted before the full snapshot are already included.
-                lock(&core.inner).ratings_pending.retain(|id| !ids.contains(id));
                 core.publish();
                 drop(core);
                 loop {
@@ -148,8 +158,8 @@ pub(crate) fn spawn(core: &Arc<Core>, client: overfast::Client, receiver: Receiv
                         let Some(core) = weak.upgrade() else { return; };
                         let tag = {
                             let inner = lock(&core.inner);
-                            if !(inner.settings.show_ratings && inner.settings.auto_ratings) { break; }
-                            inner.registry.find(&id).and_then(|a| a.battletag.clone())
+                            if automatic && !inner.settings.auto_ratings { break; }
+                            inner.registry.find(&id).filter(|a| a.game == crate::registry::Game::Overwatch).and_then(|a| a.battletag.clone())
                         };
                         drop(core);
                         let Some(tag) = tag else { continue; };
@@ -161,15 +171,16 @@ pub(crate) fn spawn(core: &Arc<Core>, client: overfast::Client, receiver: Receiv
                         let Some(core) = weak.upgrade() else { return; };
                         match report {
                             overfast::Report::Stop => { stopped = true; break; },
-                            overfast::Report::Ratings(values) => core.apply_report(&id, values, Some(&tag)),
+                            overfast::Report::Ratings(values) => core.apply_report(&id, values, Some(&tag), automatic),
                         }
                     }
                     let Some(core) = weak.upgrade() else { return; };
                     let mut inner = lock(&core.inner);
-                    if stopped || !(inner.settings.show_ratings && inner.settings.auto_ratings) {
+                    if stopped || !inner.settings.auto_ratings {
                         inner.ratings_pending.clear();
                     }
                     ids = std::mem::take(&mut inner.ratings_pending);
+                    automatic = true;
                     let done = ids.is_empty();
                     inner.syncing = !done;
                     drop(inner);

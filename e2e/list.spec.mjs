@@ -171,13 +171,13 @@ async function checkLanguage(lang) {
     "delete-confirm": ["confirm"], "delete-cancel": ["cancel"], "game-dialog": ["gameQuestion"],
     "game-yes": ["yes"], "game-no": ["no"], "empty-state": ["emptyTitle", "emptyHint"],
     "launcher-not-found": ["launcherNotFound"], "notice": ["noticeReset"], "notice-ack": ["ok"],
-    "operation": ["operationGame"], "sync": ["syncing"],
+    "operation": ["operationGame"],
   };
   // The record's buttons keep their product names: their tooltips are translated.
   const named = /^(start|current|ingame)-|^game-(?!dialog$|yes$|no$)/;
   const check = async (h, ids) => {
     for (const id of ids) {
-      const text = await h.text(id);
+      const text = id === "sync" || id.startsWith("game-settings-") || id.startsWith("sort-role-") ? await h.el(id).getAttribute("aria-label") : await h.text(id);
       assert.ok(text.length > 0, `${lang}: ${id} has text`);
       // The settings name each language in itself, so "Русский" is there in either window language.
       const words = (named.test(id) ? await h.el(id).getAttribute("title") : text).replace("Русский", "");
@@ -212,6 +212,29 @@ async function checkLanguage(lang) {
 
   await see(["version", "add-account", "save-current", "sort-last-login", "sort-battletag", `account-${A.id}`, `tag-${A.id}`, `email-${A.id}`, `state-${A.id}`, `start-${A.id}`, `delete-${A.id}`]);
   await see(["settings-open"]);
+  await see(["tab-all", `game-settings-${A.id}`]);
+  assert.ok((await h.text("tab-all")).includes(t("allGames")));
+  for (const game of ["overwatch", "world_of_warcraft", "world_of_warcraft_forever", "call_of_duty"]) {
+    const id = `tab-${game}`;
+    await h.waitFor(id); seen.add(id);
+    assert.equal(await h.el(id).getAttribute("title"), t(game));
+  }
+  await h.click(`game-settings-${A.id}`);
+  await see([`game-picker-${A.id}`, `game-option-${A.id}-none`]);
+  assert.ok((await h.text(`game-picker-${A.id}`)).includes(t("accountGame")));
+  assert.equal(await h.text(`game-option-${A.id}-none`), t("noGame"));
+  for (const game of ["overwatch", "world_of_warcraft", "world_of_warcraft_forever", "call_of_duty"]) {
+    const id = `game-option-${A.id}-${game}`;
+    await h.waitFor(id); seen.add(id);
+    assert.equal(await h.text(id), t(game));
+  }
+  await app.browser.keys("Escape");
+  await h.click("tab-call_of_duty");
+  await see(["empty-game-tab", "empty-game-add"]);
+  assert.ok((await h.text("empty-game-tab")).includes(t("emptyGameTab").replace("{game}", "Call of Duty")));
+  await h.click("tab-overwatch");
+  await see(["sort-role-tank", "sort-role-damage", "sort-role-support"]);
+  for (const role of ["tank", "damage", "support"]) assert.equal(await h.el(`sort-role-${role}`).getAttribute("aria-label"), t(role));
   if (lang === "it" && process.env.NOXDECK_CAPTURE_DIR) {
     await app.browser.saveScreenshot(`${process.env.NOXDECK_CAPTURE_DIR}/main-it.png`);
   }
@@ -233,9 +256,9 @@ async function checkLanguage(lang) {
   const settingKeys = {
     "set-hide-emails": "hideEmails",
     "set-autostart": "autostart", "set-after-stay": "afterStay", "set-after-tray": "afterTray", "set-after-close": "afterClose",
-    "set-show-game": "showGame", "set-show-ratings": "showRatings", "set-auto-ratings": "autoRatings", "set-close-launcher": "closeLauncher",
+    "set-auto-ratings": "autoRatings", "set-close-launcher": "closeLauncher",
   };
-  for (const id of ["set-hide-emails", "set-autostart", "set-after-stay", "set-after-tray", "set-after-close", "set-show-game", "set-show-ratings", "set-auto-ratings", "set-close-launcher"]) {
+  for (const id of ["set-hide-emails", "set-autostart", "set-after-stay", "set-after-tray", "set-after-close", "set-auto-ratings", "set-close-launcher"]) {
     await h.waitFor(id); seen.add(id);
     const label = await app.browser.execute(id => document.querySelector(`[data-testid="${id}"]`).closest("label").textContent, id);
     assert.equal(cyrillic.test(label), lang === "ru", `${lang}: ${id} label is translated`);
@@ -253,8 +276,8 @@ async function checkLanguage(lang) {
     }
     await app.browser.setWindowSize(960, 720);
   }
-  if (lang === "it" && process.env.NOXDECK_CAPTURE_DIR) {
-    await app.browser.saveScreenshot(`${process.env.NOXDECK_CAPTURE_DIR}/settings-it.png`);
+  if (lang === "ru" && process.env.NOXDECK_CAPTURE_DIR) {
+    await app.browser.saveScreenshot(`${process.env.NOXDECK_CAPTURE_DIR}/settings.png`);
   }
   if (lang === "en") {
     assert.equal(await h.el("set-hide-emails").isSelected(), false);
@@ -285,6 +308,7 @@ async function checkLanguage(lang) {
     await check(h,[`rating-${A.id}-${role}`]);
   }
   app.overfast.set(A.tag, { body: {competitive:{pc:{tank:{division:"gold",tier:3}}}}, delay:500 });
+  await h.click("tab-overwatch");
   await h.click("sync");
   await see(["sync"]);
   await h.waitFor(`rating-sync-${A.id}-tank`);
@@ -353,8 +377,8 @@ async function checkLanguage(lang) {
 for (const lang of ["en", "ru", "it"]) {
   test(`all languages: every element of the contract is there and in ${lang}`, async () => {
     const seen = await checkLanguage(lang);
-    const contract = ["empty-state", "add-account", "save-current", "message", "remind-dialog", "remind-dont-show", "remind-continue", "waiting", "cancel", "sort-last-login", "sort-battletag", "delete-dialog", "delete-confirm", "delete-cancel", "logout-dialog", "logout-dont-show", "logout-continue", "launcher-not-found", "version", "settings-open", "settings", "settings-back", "set-autostart", "set-after-stay", "set-after-tray", "set-after-close", "set-show-game", "set-lang-ru", "set-lang-en"];
-    for (const id of [...contract, "set-lang-it", "save-diagnostics", "diagnostics-note", "set-hide-emails"]) assert.ok(seen.has(id), `${id} was seen`);
+    const contract = ["empty-state", "add-account", "save-current", "message", "remind-dialog", "remind-dont-show", "remind-continue", "waiting", "cancel", "sort-last-login", "sort-battletag", "delete-dialog", "delete-confirm", "delete-cancel", "logout-dialog", "logout-dont-show", "logout-continue", "launcher-not-found", "version", "settings-open", "settings", "settings-back", "set-autostart", "set-after-stay", "set-after-tray", "set-after-close", "set-lang-ru", "set-lang-en"];
+    for (const id of [...contract, "set-lang-it", "save-diagnostics", "diagnostics-note", "set-hide-emails", "tab-all", "tab-overwatch", "tab-world_of_warcraft", "tab-world_of_warcraft_forever", "tab-call_of_duty", "empty-game-tab", "empty-game-add", "sort-role-tank", "sort-role-damage", "sort-role-support", `game-settings-${A.id}`, `game-picker-${A.id}`, `game-option-${A.id}-none`]) assert.ok(seen.has(id), `${id} was seen`);
   });
 }
 

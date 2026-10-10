@@ -64,12 +64,10 @@ pub struct Settings {
     pub dismissed: Dismissed,
     #[serde(default)]
     pub after_start: AfterStart,
-    #[serde(default = "enabled")]
-    pub show_game_start: bool,
+    #[serde(default, rename = "show_game_start", skip_serializing_if = "Option::is_none")]
+    pub legacy_show_game_start: Option<bool>,
     #[serde(default = "enabled")]
     pub close_launcher: bool,
-    #[serde(default = "enabled")]
-    pub show_ratings: bool,
     #[serde(default = "enabled")]
     pub auto_ratings: bool,
     #[serde(default)]
@@ -84,9 +82,8 @@ impl Default for Settings {
             tab_sorts: Default::default(),
             tab: Tab::All, tab_version: None,
             schema: 1, sort: Sort::LastLogin, dismissed: Dismissed::default(),
-            after_start: AfterStart::Tray, show_game_start: true, language: None,
+            after_start: AfterStart::Tray, legacy_show_game_start: None, language: None,
             close_launcher: true,
-            show_ratings: true,
             auto_ratings: true,
             hide_emails: false,
         }

@@ -15,22 +15,20 @@ test("settings 1: all controls show their defaults", async () => {
   await settings();
   assert.equal(await checked("set-autostart"), false);
   assert.equal(await checked("set-after-tray"), true);
-  assert.equal(await checked("set-show-game"), true);
+  assert.equal(await app.h.exists("set-show-game"), false);
+  assert.equal(await app.h.exists("set-show-ratings"), false);
   assert.equal(await checked("set-lang-en"), true);
   for (const id of ["set-after-stay", "set-after-close", "set-lang-ru"]) assert.equal(await checked(id), false);
   await app.h.click("settings-back"); await app.h.waitGone("settings");
 });
 
-test("settings 2: disabling game start hides buttons and in-game marks and changes tray actions", async () => {
-  app = await startApp({ accounts: [record(A), record(B)], settings: quiet, scenario: { accounts: [A, B], readiness: "playable", game_launch: "stays" } });
+test("settings 2: another game has only Launcher and its tray start preserves the playing account", async () => {
+  app = await startApp({ accounts: [record(A), record(B, { game: "call_of_duty" })], settings: quiet, scenario: { accounts: [A, B], readiness: "playable", game_launch: "stays" } });
   const { h } = app;
   await h.click(`game-${A.id}`); await h.waitFor(`ingame-${A.id}`);
   await h.waitGone("operation");
-  await settings(); await h.click("set-show-game"); await h.click("settings-back");
-  for (const account of [A, B]) {
-    assert.equal(await h.exists(`game-${account.id}`), false);
-    assert.equal(await h.exists(`ingame-${account.id}`), false);
-  }
+  assert.equal(await h.exists(`game-${B.id}`), false);
+  assert.equal(await h.exists(`ingame-${A.id}`), true);
   await invoke("test_tray_click", { id: `acc-${B.id}` });
   await h.tick(async () => (await invoke("get_state", {})).operation === null, "tray operation did not end");
   assert.equal((await invoke("get_state", {})).accounts.find(a => a.id === B.id).isCurrent, true, JSON.stringify(await invoke("get_state", {})));
@@ -59,11 +57,11 @@ test("settings 4: selecting a language changes the window and tray immediately a
 test("settings 5: changed settings survive an actual program restart", async () => {
   app = await startApp({ accounts: [record(A)], settings: quiet });
   await settings();
-  await app.h.click("set-after-close"); await app.h.click("set-show-game"); await app.h.click("set-lang-ru"); await app.h.click("set-autostart");
+  await app.h.click("set-after-close"); await app.h.click("set-close-launcher"); await app.h.click("set-lang-ru"); await app.h.click("set-autostart");
   await app.h.tick(async () => await checked("set-autostart"), "startup was not enabled");
   await app.restart(); await settings();
   for (const id of ["set-after-close", "set-lang-ru", "set-autostart"]) assert.equal(await checked(id), true);
-  assert.equal(await checked("set-show-game"), false);
+  assert.equal(await checked("set-close-launcher"), false);
   assert.equal(app.settingsFile().autostart, undefined, "startup is read from Windows, not settings.json");
-  await app.h.click("settings-back"); assert.equal(await app.h.exists(`game-${A.id}`), false);
+  await app.h.click("settings-back"); assert.equal(await app.h.exists(`game-${A.id}`), true);
 });

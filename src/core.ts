@@ -64,7 +64,6 @@ export type State = {
   settings: {
     hideEmails: boolean;
     closeLauncher: boolean;
-    showRatings: boolean;
     autoRatings: boolean;
     autostart: boolean;
     afterStart: "stay" | "tray" | "close";
@@ -91,7 +90,6 @@ export const core = {
   openRepository: () => call("open_repository"),
   setRating: (id: string, role: Role, value: RatingValue | null) => call("set_rating", { id, role, value }),
   setAccountGame: (id: string, game: Game) => call("set_account_game", { id, game }),
-  setShowRatings: (value: boolean) => call("set_show_ratings", { value }),
   setAutoRatings: (value: boolean) => call("set_auto_ratings", { value }),
   syncRatings: () => call("sync_ratings"),
   getState: () => invoke<State>("get_state"),
@@ -108,7 +106,6 @@ export const core = {
   clearAsk: () => call("clear_ask"),
   setAutostart: (value: boolean) => call("set_autostart", { value }),
   setAfterStart: (value: State["settings"]["afterStart"]) => call("set_after_start", { value }),
-  setShowGameStart: (value: boolean) => call("set_show_game_start", { value }),
   setLanguage: (value: State["settings"]["language"]) => call("set_language", { value }),
   /** Calls `fn` with every state the core sends. Returns the function that stops it. */
   subscribe: async (fn: (s: State) => void) => listen<State>("state", (e) => fn(e.payload)),

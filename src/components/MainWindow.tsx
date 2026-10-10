@@ -103,15 +103,11 @@ export function MainWindow({ state, api, controls, initial }: {
     if (!result.ok) say(result.refusal);
     else if (state.tab !== "all" && state.tab !== game) setMovedGame(game);
   }
-  const sync = state.settings.showRatings && state.settings.autoRatings
-    ? { busy: state.syncing, onClick: () => run(api.syncRatings) }
-    : null;
 
   return (
     <main ref={root} className="win">
       <TitleBar
         version={state.version}
-        sync={sync}
         settingsOpen={settingsOpen}
         onSettings={() => { setPicking(null); setGamePicking(null); setSettingsOpen(true); }}
         controls={controls}
@@ -123,7 +119,7 @@ export function MainWindow({ state, api, controls, initial }: {
           addDisabled={busy || !found}
           onAdd={addAccount}
           onSave={saveCurrent}
-        /><GameBar state={state} onTab={tab => { setPicking(null); setGamePicking(null); api.setTab(tab); }} onSort={sort => api.setSort(sort)} /></>
+        /><GameBar state={state} onTab={tab => { setPicking(null); setGamePicking(null); api.setTab(tab); }} onSort={sort => api.setSort(sort)} onRefresh={() => run(api.syncRatings)} /></>
       )}
 
       <div className="body">
@@ -173,7 +169,6 @@ export function MainWindow({ state, api, controls, initial }: {
                 busy={busy}
                 launcherFound={found}
                 showGameStart={state.settings.showGameStart}
-                showRatings={state.settings.showRatings}
                 autoRatings={state.settings.autoRatings}
                 pickingRole={picking?.id === a.id ? picking.role : null}
                 onPickRating={(role, anchor) => openPicker(a.id, role, anchor)}

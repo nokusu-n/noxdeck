@@ -5,7 +5,7 @@ use serde_json::{json, Value};
 fn defaults_include_the_stage_three_settings() {
     let value = serde_json::to_value(Settings::default()).unwrap();
     assert_eq!(value["after_start"], "tray");
-    assert_eq!(value["show_game_start"], true);
+    assert!(value.get("show_game_start").is_none());
     assert!(value.get("language").is_some());
     assert_eq!(value["language"], Value::Null);
 }
@@ -21,7 +21,7 @@ fn a_stage_two_file_keeps_old_preferences_and_adds_defaults() {
     assert_eq!(value["sort"], "battletag");
     assert_eq!(value["dismissed"]["logout_warning"], true);
     assert_eq!(value["after_start"], "tray");
-    assert_eq!(value["show_game_start"], true);
+    assert!(value.get("show_game_start").is_none());
     assert!(value.get("language").is_some());
 }
 
@@ -47,8 +47,9 @@ fn after_start_round_trips_each_choice() {
 }
 
 #[test]
-fn show_game_start_round_trips_both_values() {
-    round_trip("show_game_start", &[json!(true), json!(false)]);
+fn an_old_game_start_preference_is_retained_only_for_account_migration() {
+    let settings: Settings = serde_json::from_value(json!({"schema":1,"sort":"last_login","dismissed":{"remember_login":false,"logout_warning":false},"show_game_start":false})).unwrap();
+    assert_eq!(settings.legacy_show_game_start, Some(false));
 }
 
 #[test]

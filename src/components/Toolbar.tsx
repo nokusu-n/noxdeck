@@ -28,7 +28,7 @@ export function Toolbar({ addDisabled, onAdd, onSave }: {
   );
 }
 
-export function GameBar({ state, onTab, onSort }: { state: State; onTab: (tab: Tab) => void; onSort: (sort: Sort) => void }) {
+export function GameBar({ state, onTab, onSort, onRefresh }: { state: State; onTab: (tab: Tab) => void; onSort: (sort: Sort) => void; onRefresh: () => void }) {
   return <div className="gamebar">
     <nav className="game-tabs" role="tablist" aria-label={t("gameTabs")}>
       {(["all", ...games] as Tab[]).map(tab => {
@@ -40,6 +40,9 @@ export function GameBar({ state, onTab, onSort }: { state: State; onTab: (tab: T
       })}
     </nav>
     <div className="tool-gap" />
+    {state.tab === "overwatch" && <button data-testid="sync" className="btn btn--icon" disabled={state.syncing} aria-busy={state.syncing} title={t("syncTip")} aria-label={t(state.syncing ? "syncing" : "syncRatings")} onClick={onRefresh}>
+      <Icon name="i-refresh" size={16} spin={state.syncing} /><span className="sr-only">{t(state.syncing ? "syncing" : "syncRatings")}</span>
+    </button>}
     <div className="seg" role="group" aria-label={t("sortLabel")}>
       <button data-testid="sort-last-login" className={`seg-b${state.sort === "last_login" ? " is-on" : ""}`} aria-pressed={state.sort === "last_login"} onClick={() => onSort("last_login")}>{t("sortLastLogin")}</button>
       <button data-testid="sort-battletag" className={`seg-b${state.sort === "battletag" ? " is-on" : ""}`} aria-pressed={state.sort === "battletag"} onClick={() => onSort("battletag")}>{t("sortBattletag")}</button>

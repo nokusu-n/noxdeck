@@ -19,10 +19,10 @@ const api: Api = {
   setAccountGame: ok,
   setTab: ok,
   saveDiagnostics: async () => ({ ok: true as const, value: "cancelled" as const }),
-  setCloseLauncher: ok, openRepository: ok, setRating: ok, setShowRatings: ok, setAutoRatings: ok, syncRatings: ok,
+  setCloseLauncher: ok, openRepository: ok, setRating: ok, setAutoRatings: ok, syncRatings: ok,
   getState: async () => base, addAccount: ok, cancelOperation: ok, saveCurrent: async () => ({ ok: true as const, value: { id: "a1" } }),
   startLauncher: ok, startGame: ok, deleteAccount: ok, setSort: ok, dismiss: ok, acknowledgeNotice: ok, clearAsk: ok,
-  setAutostart: ok, setAfterStart: ok, setShowGameStart: ok, setLanguage: ok, subscribe: async () => () => {},
+  setAutostart: ok, setAfterStart: ok, setLanguage: ok, subscribe: async () => () => {},
 };
 const controls = (maximized = false): WindowControls => ({ minimize() {}, toggleMaximize() {}, close() {}, watchMaximized: (fn) => (fn(maximized), () => {}) });
 
@@ -39,7 +39,7 @@ function Shot({ caption, children }: { caption: string; children: ReactNode }) {
   return <figure className="shot"><figcaption>{caption}</figcaption>{children}</figure>;
 }
 
-type Case = { caption: string; account?: Partial<Account>; busy?: boolean; loggingIn?: boolean; phase?: Op["phase"]; showGame?: boolean; showRatings?: boolean; preview?: "copied" | "started" };
+type Case = { caption: string; account?: Partial<Account>; busy?: boolean; loggingIn?: boolean; phase?: Op["phase"]; showGame?: boolean; preview?: "copied" | "started" };
 const cases: Case[] = [
   { caption: "Готов, ничего не запущено" },
   { caption: "Battle.net открыт на этом аккаунте", account: { isCurrent: true } },
@@ -60,9 +60,9 @@ const cases: Case[] = [
   { caption: "E-mail неизвестен: кнопки недоступны, причина в подсказке", account: { email: null } },
   { caption: "Идёт другое действие: кнопки недоступны", busy: true },
   { caption: "BattleTag скопирован", preview: "copied" },
-  { caption: "Настройки: рейтинг выключен, ячейки остаются", showRatings: false },
-  { caption: "Настройки: кнопки игры нет, Launcher на всю ширину", showGame: false },
-  { caption: "Настройки: выключено то и другое", showRatings: false, showGame: false },
+  { caption: "Аккаунт World of Warcraft", account: { game: "world_of_warcraft" } },
+  { caption: "Аккаунт Call of Duty", account: { game: "call_of_duty" } },
+  { caption: "Аккаунт без игры", account: { game: "none" } },
 ];
 
 function RecordCase({ c }: { c: Case }) {
@@ -71,7 +71,7 @@ function RecordCase({ c }: { c: Case }) {
     <Shot caption={c.caption}>
       <ul className="cards cards--one">
         <AccountRecord account={a} loggingIn={!!c.loggingIn} phase={c.phase ?? null} busy={!!c.busy} launcherFound
-          showGameStart={c.showGame ?? true} showRatings={c.showRatings ?? true} autoRatings preview={c.preview}
+          showGameStart={c.showGame ?? true} autoRatings preview={c.preview}
           pickingRole={null} onPickRating={() => {}} onStart={() => {}} onDelete={() => {}} onGame={() => {}} />
       </ul>
     </Shot>
@@ -140,7 +140,7 @@ export function StatesPage() {
             <Frame w={600} h={520}><MainWindow state={s({ operation: op("starting") })} api={api} controls={controls()} initial={{ message: "r_launcher_not_closable" }} /></Frame>
           </Shot>
           <Shot caption="Обновление рейтинга: кнопка в шапке занята">
-            <Frame w={600} h={520}><MainWindow state={s({ syncing: true })} api={api} controls={controls()} /></Frame>
+            <Frame w={600} h={520}><MainWindow state={s({ syncing: true, tab: "overwatch" })} api={api} controls={controls()} /></Frame>
           </Shot>
         </div>
       </Section>

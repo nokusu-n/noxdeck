@@ -754,6 +754,7 @@ impl Core {
         if account.game == game { return Ok(()); }
         account.game = game;
         self.journal.record(Step::AccountGameChanged { account: self.journal.account(id), game });
+        if game == crate::registry::Game::Overwatch { self.refresh_added_account(&mut inner, id); }
         self.save_registry(&inner);
         drop(inner);
         self.publish();

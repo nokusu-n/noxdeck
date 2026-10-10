@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 #[test]
-fn only_battletags_leave_and_only_with_both_rating_settings_on() {
+fn only_overwatch_battletags_leave_and_automatic_requests_require_auto() {
     use common::{account_json, accounts_file, fast, Fake, wait_for};
     use common::overfast::{Reply, Stub};
     use noxdeck_lib::{ratings::overfast::Client, settings::Settings, Core};
@@ -17,11 +17,15 @@ fn only_battletags_leave_and_only_with_both_rating_settings_on() {
         let f = Fake::new();
         let tag = "ExamplePlayer#12345";
         f.seed_accounts(&accounts_file(&[account_json("aaaa0001", Some("placeholder@example.com"), Some(tag), "ready")]));
-        Settings { show_ratings: show, auto_ratings: auto, ..Settings::default() }.save(&f.paths.data.join("settings.json")).unwrap();
+        Settings { auto_ratings: auto, ..Settings::default() }.save(&f.paths.data.join("settings.json")).unwrap();
         let stub = Stub::new(); stub.set(tag, Reply::json("{}"));
         let mut timing = fast(); timing.ratings_interval = Duration::from_millis(30);
+        if !show {
+            let mut registry = noxdeck_lib::registry::Registry::load(&f.paths.data.join("accounts.json")).0;
+            registry.migrate(true); registry.accounts[0].game = noxdeck_lib::registry::Game::None; registry.save(&f.paths.data.join("accounts.json")).unwrap();
+        }
         let core = Core::new_with_ratings(f.paths.clone(), timing, f.procs.clone(), Box::new(|_| {}), "test", f.shell.clone(), Client::new(&stub.url));
-        core.sync_ratings();
+        if !show { core.set_account_game("aaaa0001", noxdeck_lib::registry::Game::None).unwrap(); }
         if show && auto {
             wait_for(&core, "rating request", |_| stub.count() > 0);
         }
@@ -145,7 +149,7 @@ fn the_window_may_only_talk_to_the_core() {
     let boundary = fs::read_to_string(manifest().join("../src/core.ts")).unwrap();
     let mut commands: Vec<_> = boundary.lines().filter(|line| line.contains("=> call")).map(|line| line.rsplit_once("(\"").unwrap().1.split('"').next().unwrap()).collect();
     commands.sort_unstable();
-    let mut permitted = vec!["open_repository", "set_rating", "set_show_ratings", "set_auto_ratings", "sync_ratings", "add_account", "cancel_operation", "save_current", "start_launcher", "start_game", "delete_account", "set_sort", "dismiss", "acknowledge_notice", "clear_ask", "set_autostart", "set_after_start", "set_show_game_start", "set_close_launcher", "set_language", "save_diagnostics"];
+    let mut permitted = vec!["open_repository", "set_rating", "set_auto_ratings", "sync_ratings", "add_account", "cancel_operation", "save_current", "start_launcher", "start_game", "delete_account", "set_sort", "dismiss", "acknowledge_notice", "clear_ask", "set_autostart", "set_after_start", "set_close_launcher", "set_language", "save_diagnostics"];
     permitted.sort_unstable();
     permitted.extend(["set_hide_emails", "set_account_game", "set_tab"]);
     permitted.sort_unstable();

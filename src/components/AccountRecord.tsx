@@ -18,7 +18,6 @@ type Props = {
   busy: boolean;
   launcherFound: boolean;
   showGameStart: boolean;
-  showRatings: boolean;
   autoRatings: boolean;
   /** The role whose picker is open on this record. */
   pickingRole: Role | null;
@@ -50,7 +49,7 @@ function lookOf(a: Account, loggingIn: boolean, phase: Phase | null, started: bo
   return { id: "ready", kind: "idle", mark: "m-idle", chip: null };
 }
 
-export function AccountRecord({ account: a, loggingIn, phase, operationKind, onCancel, busy, launcherFound, showGameStart, showRatings, autoRatings, pickingRole, onPickRating, onStart, onDelete, onGame, onPickGame, pickingGame, preview }: Props) {
+export function AccountRecord({ account: a, loggingIn, phase, operationKind, onCancel, busy, launcherFound, showGameStart, autoRatings, pickingRole, onPickRating, onStart, onDelete, onGame, onPickGame, pickingGame, preview }: Props) {
   const [copied, setCopied] = useState(preview === "copied");
   const started = a.lastOutcome === "game_started";
   const look = lookOf(a, loggingIn, phase, started);
@@ -99,7 +98,7 @@ export function AccountRecord({ account: a, loggingIn, phase, operationKind, onC
         </button>
         </div>
       </div>
-      <Ratings account={a} shown={showRatings} autoRatings={autoRatings} openRole={pickingRole} onOpen={onPickRating} />
+      <Ratings account={a} autoRatings={autoRatings} openRole={pickingRole} onOpen={onPickRating} />
       <div className="c-acts">
         {loggingIn && operationKind === "start" ? (
           <button data-testid={`start-${a.id}`} className={`btn btn--act${wide}`} onClick={onCancel}>{t("cancel")}</button>

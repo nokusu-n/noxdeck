@@ -13,7 +13,7 @@ fn seeded() -> Fake {
 fn migration_follows_the_old_game_button_setting_and_runs_once() {
     for shown in [true, false] {
         let f = seeded();
-        Settings { show_game_start: shown, ..Settings::default() }.save(&f.paths.data.join("settings.json")).unwrap();
+        Settings { legacy_show_game_start: Some(shown), ..Settings::default() }.save(&f.paths.data.join("settings.json")).unwrap();
         let core = f.core();
         assert_eq!(account(&core.state(), ID).game, if shown { Game::Overwatch } else { Game::None });
         assert_eq!(Registry::load(&f.paths.data.join("accounts.json")).0.schema, 2);
