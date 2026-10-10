@@ -38,7 +38,7 @@ fn application_artwork_is_used_by_the_executable_and_bundle() {
         "icons/icon.ico"
     );
     assert!(include_str!("../src/shell.rs").contains("icons/noxdeck-tray.ico"));
-    // The tray shows the executable's picture (the designer's decision); the two files stay apart
+    // The tray shows the executable's picture; the two files stay apart
     // so the tray can diverge later.
     assert_eq!(
         include_bytes!("../icons/icon.ico").as_slice(),
